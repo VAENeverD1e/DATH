@@ -17,6 +17,8 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [formError, setFormError] = useState("");
 
   // Simulate existing users for demo — replace later with database call
   const existingEmails = ["you@example.com"];
@@ -50,11 +52,18 @@ const Register = () => {
     }
     return ""; // no errors
   };
-
   const handleSubmit = (e) => {
     e.preventDefault(); 
     const newErrors = {};
+    setFormError(""); // clear previous general error
 
+    // Check for empty required fields
+    if (!form.firstName || !form.lastName || !form.email || !form.password || !form.confirmPassword) {
+    setFormError("Please fill in all required fields.");
+    return;
+    }
+
+    // Name validations
     if (!isValidName(form.firstName)) {
       newErrors.firstName = "First name must contain only letters.";
     }
@@ -66,7 +75,7 @@ const Register = () => {
     if (!isValidEmail(form.email)) {
       newErrors.email = "Invalid email format.";
     } else if (existingEmailsLower.includes(form.email.trim().toLowerCase())) {
-    newErrors.email = "This email is already registered.";
+    newErrors.email = "This email is already in use.";
     }
 
     // Password validations
@@ -82,14 +91,16 @@ const Register = () => {
 
     // Only proceed if no errors
     if (Object.keys(newErrors).length === 0) {
-      // Handle registration logic here
-      console.log("Registration successful:", form);
-      setLoading(true);
-
-      setTimeout(() => {
-        setLoading(false); 
-        navigate("/home", { replace: true });
-        }, 2000); // Simulate 2 seconds of "buffering"
+        // Handle registration logic here
+        console.log("Registration successful:", form);
+        // All passed → simulate registration
+        setLoading(true);
+        setSuccessMsg("");
+        setTimeout(() => {
+            setLoading(false);
+            setSuccessMsg("Registration successful!");
+            setTimeout(() => navigate("/"), 900);
+        }, 1400);
     }  
 };
 
@@ -120,6 +131,12 @@ const Register = () => {
           Create an account
         </h2>
 
+        {formError && (
+        <div className="mb-4 text-center text-sm text-red-500 font-medium">
+            {formError}
+        </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name fields side-by-side */}
           <div className="flex gap-3">
@@ -133,7 +150,7 @@ const Register = () => {
                 placeholder="First name"
                 value={form.firstName}
                 onChange={handleChange}
-                required
+                // required
                 className={`mt-1 block w-full border rounded px-3 py-2 text-base ${
                   errors.firstName ? "border-red-500" : "border-gray-200"
                 }`}
@@ -155,7 +172,7 @@ const Register = () => {
                 placeholder="Last name"
                 value={form.lastName}
                 onChange={handleChange}
-                required
+                // required
                 className={`mt-1 block w-full border rounded px-3 py-2 text-base ${
                   errors.lastName ? "border-red-500" : "border-gray-200"
                 }`}
@@ -177,7 +194,7 @@ const Register = () => {
               placeholder="you@example.com"
               value={form.email}
               onChange={handleChange}
-              required
+            //   required
               className={`mt-1 block w-full border rounded px-3 py-2 text-base ${
                 errors.email ? "border-red-500" : "border-gray-200"
               }`}
@@ -200,7 +217,7 @@ const Register = () => {
                 placeholder="••••••••"
                 value={form.password}
                 onChange={handleChange}
-                required
+                // required
                 className={`mt-1 block w-full border rounded px-3 py-2 pr-10 text-base ${
                   errors.password ? "border-red-500" : "border-gray-200"
                 }`}
@@ -242,7 +259,7 @@ const Register = () => {
                 placeholder="Confirm your password"
                 value={form.confirmPassword}
                 onChange={handleChange}
-                required
+                // required
                 className={`mt-1 block w-full border rounded px-3 py-2 pr-10 text-base ${
                   errors.confirmPassword ? "border-red-500" : "border-gray-200"
                 }`}
@@ -262,17 +279,25 @@ const Register = () => {
 
         <button
             type="submit"
-            className={`w-full py-3 text-lg text-white rounded transition font-bold ${loading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"}`}
+            className={`w-full py-3 text-lg text-white rounded transition font-bold ${
+                loading
+                ? "bg-blue-400 cursor-not-allowed"
+                : successMsg
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-blue-500 hover:bg-blue-600"
+            }`}
             style={{ fontFamily: "'Poppins', 'Arial', sans-serif" }}
             disabled={loading}
-        >
-            {loading ? (
+            >
             <div className="flex items-center justify-center gap-3">
+                {loading ? (
                 <span>Registering...</span>
+                ) : successMsg ? (
+                <span>Registration successful!</span>
+                ) : (
+                <span>Register</span>
+                )}
             </div>
-            ) : (
-            "Register"
-            )}
         </button>
 
           <div

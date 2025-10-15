@@ -95,7 +95,7 @@ const Login = () => {
           setGeneralError("Too many failed attempts. Please try again later.");
         } else {
           setGeneralError(
-            `Incorrect email or password. Attempts remaining: ${LOCKOUT_LIMIT - newCount}`
+            `Invalid email or password. Attempts remaining: ${LOCKOUT_LIMIT - newCount}`
           );
         }
         return newCount;
