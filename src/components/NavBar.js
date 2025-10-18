@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -28,38 +29,38 @@ const NavBar = () => {
           
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
-            <a 
-              href="/" 
+            <Link 
+              to="/" 
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
             >
               Home
-            </a>
-            <a 
-              href="/services" 
+            </Link>
+            <Link 
+              to="/services" 
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
             >
               Services
-            </a>
-            <a 
-              href="/about" 
+            </Link>
+            <Link 
+              to="/about" 
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
             >
               About Us
-            </a>
-            <a 
-              href="/contact" 
+            </Link>
+            <Link 
+              to="/contact" 
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
             >
               Contact
-            </a>
+            </Link>
           </div>
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
             {/* Log in Button */}
-            <button className="px-6 py-2 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors duration-200 font-medium">
+            <Link to="/login" className="px-6 py-2 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors duration-200 font-medium">
               Log in
-            </button>
+            </Link>
             
             {/* Language Selector */}
             <div className="relative">
@@ -128,30 +129,18 @@ const NavBar = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col space-y-4">
-              <a 
-                href="/" 
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
-              >
+              <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200">
                 Home
-              </a>
-              <a 
-                href="/services" 
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
-              >
+              </Link>
+              <Link to="/services" className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200">
                 Services
-              </a>
-              <a 
-                href="/about" 
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
-              >
+              </Link>
+              <Link to="/about" className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200">
                 About Us
-              </a>
-              <a 
-                href="/contact" 
-                className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
-              >
+              </Link>
+              <Link to="/contact" className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200">
                 Contact
-              </a>
+              </Link>
             </div>
           </div>
         )}

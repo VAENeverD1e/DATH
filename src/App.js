@@ -1,16 +1,38 @@
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Layout from "./Layout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import HomePage from "./pages/HomePage";
+import FloatingMenu from "./components/FloatingMenu";
+import { Home } from "lucide-react";
+
 export default function App() {
   return (
     <Router>
-      {/* Routes */}
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/home" element={<HomePage />} />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/"
+            element={
+              <Layout>
+                <HomePage />
+              </Layout>
+            }
+            />
+          <Route 
+            path="/register" 
+            element={
+              <Layout>
+                <Register />
+              </Layout>
+            }
+              />
+
       </Routes>
+
+      <FloatingMenu />
+
     </Router>
   );
 }

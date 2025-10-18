@@ -1,106 +1,43 @@
-import Navbar from "../components/NavBar";
 import React from "react";
-import { Link } from 'react-router-dom';
 
 const HomePage = () => {
   return (
-    <div className="min-h-screen relative">
-      {/* Background image (full screen) */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/assets/Homepage_background.png')" }}
-        aria-hidden="true"
-      />
-      {/* Gradient overlay so text stays readable */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 opacity-80" aria-hidden="true" />
+    <section
+      className="relative min-h-[calc(100vh-5rem)] bg-no-repeat bg-cover bg-center overflow-hidden"
+      style={{
+        backgroundImage: "url('/assets/Homepage_background.png')",
+      }}
+    >
+      {/* Headline - upper left */}
+      <div className="absolute top-8 left-8 z-10 max-w-2xl">
+        <h1 className="font-display text-5xl md:text-6xl lg:text-7xl leading-tight font-extrabold text-brand-deep drop-shadow-sm tracking-tight">
+          <span className="inline-block">Search</span>
+          <span className="mx-3 text-3xl md:text-4xl align-middle">-</span>
+          <span className="inline-block">Book</span>
+          <span className="mx-3 text-3xl md:text-4xl align-middle">-</span>
+          <span className="inline-block">Feel Better</span>
+        </h1>
+        <div className="mt-4 w-28 h-0.5 bg-gradient-to-r from-brand-accent via-transparent to-transparent rounded-full opacity-80" />
+      </div>
 
-      {/* Main content placed above background */}
-      <div className="relative z-10">
-        {/* Navigation Bar */}
-        <nav className="bg-white shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-20">
-              {/* Logo */}
-              <div className="flex items-center">
-                <img 
-                  src="/assets/logo.png" 
-                  alt="MediSafe Logo" 
-                  className="h-12 w-auto"
-                />
-                <span className="ml-3 text-3xl font-bold text-gray-800">MediSafe</span>
-              </div>
-              
-              {/* Navigation Links */}
-              <div className="hidden md:flex items-center space-x-8">
-                <Link to="/" className="text-gray-700 hover:text-blue-600 font-medium">
-                  Home
-                </Link>
-                <Link to="/services" className="text-gray-700 hover:text-blue-600 font-medium">
-                  Services
-                </Link>
-                <Link to="/about" className="text-gray-700 hover:text-blue-600 font-medium">
-                  About Us
-                </Link>
-                <Link to="/contact" className="text-gray-700 hover:text-blue-600 font-medium">
-                  Contact
-                </Link>
-              </div>
+      {/* Subtext - middle left */}
+      <div className="absolute top-1/2 left-8 transform -translate-y-1/2 z-10 max-w-lg">
+        <p className="text-lg md:text-xl lg:text-2xl text-gray-800 leading-relaxed md:leading-snug opacity-95">
+          Delivering care with expertise,
+          <span className="block">guided by medical ethics</span>
+          <span className="block">and deep compassion.</span>
+        </p>
+      </div>
 
-              {/* Right Side Actions */}
-              <div className="flex items-center space-x-4">
-                <button className="px-6 py-2 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors">
-                  Log in
-                </button>
-                <div className="flex items-center space-x-2 border border-gray-300 rounded-lg px-3 py-2">
-                  <img 
-                    src="https://cdn.jsdelivr.net/npm/flag-icons@6.6.6/flags/4x3/gb.svg" 
-                    alt="EN" 
-                    className="h-4 w-6"
-                  />
-                  <span className="font-medium">EN</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </nav>
-
-        {/* Hero Section */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div className="space-y-8">
-              <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
-                Search - Book - Feel Better
-              </h1>
-              
-              <p className="text-xl text-gray-700 leading-relaxed">
-                Delivering care<br />
-                with expertise,<br />
-                guided by<br />
-                medical ethics<br />
-                and deep<br />
-                compassion
-              </p>
-
-              <div className="inline-flex items-center bg-red-50 rounded-full px-8 py-4 shadow-lg">
-                <svg className="w-8 h-8 text-blue-400 mr-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <div>
-                  <p className="text-red-700 text-2xl font-bold">Meet the</p>
-                  <p className="text-red-700 text-2xl font-bold">Best Doctor</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Content - (image removed; background shows the art) */}
-          </div>
+      {/* CTA text - positioned over the pink box */}
+      <div className="absolute bottom-14 left-[170px] z-10">
+        <div className="inline-flex items-center bg-brand-accent text-white px-6 py-3 md:px-8 md:py-3 rounded-full shadow-2xl transition-shadow duration-200 border border-white/10">
+          <span className="text-lg md:text-2xl lg:text-3xl font-semibold tracking-tight">
+            Meet the <span className="font-extrabold">Best Doctor</span>
+          </span>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
