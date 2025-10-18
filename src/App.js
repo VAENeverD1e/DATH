@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import HomePage from "./pages/HomePage";
 import FloatingMenu from "./components/FloatingMenu";
+import AdminDashboard from "./pages/AdminDashboard";
 import { Home } from "lucide-react";
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/AdminDashboard" element={<AdminDashboard />} />
           <Route
             path="/"
             element={
