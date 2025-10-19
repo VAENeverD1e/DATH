@@ -30,7 +30,14 @@ export default function App() {
               </Layout>
             }
               />
-
+            <Route
+              path="/services"
+              element={
+                <Layout>
+                  <ServicePage />
+                </Layout>
+            }
+            />
       </Routes>
 
       <FloatingMenu />
