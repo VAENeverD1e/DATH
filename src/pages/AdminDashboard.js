@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Bar, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -11,6 +11,7 @@ import {
   Legend,
 } from "chart.js";
 import NavBar from "../components/NavBar";
+
 const backgroundImage = process.env.PUBLIC_URL + "/assets/artistic-blurry-colorful-wallpaper-background.jpg";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
@@ -69,12 +70,33 @@ const pieOptions = {
 };
 
 const AdminDashboard = () => {
+  const [doctors, setDoctors] = useState([
+    { id: "D001", name: "Dr. Hưng", license: "LIC12345", specialization: "Cardiology" },
+    { id: "D002", name: "Dr. Mai", license: "LIC23456", specialization: "Neurology" },
+  ]);
+
+  const [showModal, setShowModal] = useState(false);
+  const [newDoctor, setNewDoctor] = useState({
+    id: "",
+    name: "",
+    license: "",
+    specialization: "",
+  });
+
+  const handleAddDoctor = () => {
+    setDoctors([...doctors, newDoctor]);
+    setNewDoctor({ id: "", name: "", license: "", specialization: "" });
+    setShowModal(false);
+  };
+
+  const handleRemoveDoctor = (id) => {
+    setDoctors(doctors.filter((doc) => doc.id !== id));
+  };
+
   return (
     <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
-      {/* ✅ Navbar stays fixed on top */}
       <NavBar />
 
-      {/* Background Layer */}
       <div
         style={{
           position: "absolute",
@@ -82,13 +104,12 @@ const AdminDashboard = () => {
           left: 0,
           width: "100%",
           height: "100%",
-          backgroundImage: `url(${backgroundImage})`, 
-          backgroundSize: 'cover',
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: "cover",
           zIndex: 0,
         }}
       ></div>
 
-      {/* Main Content */}
       <div
         style={{
           position: "relative",
@@ -99,14 +120,14 @@ const AdminDashboard = () => {
             "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'",
         }}
       >
-        {/* Header Section */}
+        {/* Header */}
         <div className="flex items-center mb-8 w-full relative" style={{ minHeight: "56px" }}>
           <span className="absolute left-1/2 transform -translate-x-1/2 text-3xl font-bold text-blue-700 text-center w-max">
             Admin Dashboard
           </span>
         </div>
 
-        {/* Stats Section */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {stats.map((stat, idx) => {
             const boxColors = [
@@ -153,7 +174,7 @@ const AdminDashboard = () => {
           </table>
         </div>
 
-        {/* Charts Section */}
+        {/* Charts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
           <div className="bg-white shadow rounded-lg p-6 flex flex-col items-center" style={{ height: 300 }}>
             <h2 className="text-lg font-semibold mb-4">Statistics Chart</h2>
@@ -168,6 +189,102 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Doctors Table */}
+        <div className="bg-white shadow rounded-lg p-6 mt-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Doctors in Hospital</h2>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              + Add Doctor
+            </button>
+          </div>
+
+          <table className="min-w-full table-auto">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="px-4 py-2 text-left">ID</th>
+                <th className="px-4 py-2 text-left">Doctor Name</th>
+                <th className="px-4 py-2 text-left">License Number</th>
+                <th className="px-4 py-2 text-left">Specialization</th>
+                <th className="px-4 py-2 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {doctors.map((doc) => (
+                <tr key={doc.id} className="border-b">
+                  <td className="px-4 py-2">{doc.id}</td>
+                  <td className="px-4 py-2">{doc.name}</td>
+                  <td className="px-4 py-2">{doc.license}</td>
+                  <td className="px-4 py-2">{doc.specialization}</td>
+                  <td className="px-4 py-2">
+                    <button
+                      onClick={() => handleRemoveDoctor(doc.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Add Doctor Modal */}
+        {showModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
+              <h2 className="text-lg font-semibold mb-4">Add New Doctor</h2>
+
+              <input
+                type="text"
+                placeholder="Doctor ID"
+                value={newDoctor.id}
+                onChange={(e) => setNewDoctor({ ...newDoctor, id: e.target.value })}
+                className="w-full border p-2 mb-2 rounded"
+              />
+              <input
+                type="text"
+                placeholder="Doctor Name"
+                value={newDoctor.name}
+                onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
+                className="w-full border p-2 mb-2 rounded"
+              />
+              <input
+                type="text"
+                placeholder="License Number"
+                value={newDoctor.license}
+                onChange={(e) => setNewDoctor({ ...newDoctor, license: e.target.value })}
+                className="w-full border p-2 mb-2 rounded"
+              />
+              <input
+                type="text"
+                placeholder="Specialization"
+                value={newDoctor.specialization}
+                onChange={(e) => setNewDoctor({ ...newDoctor, specialization: e.target.value })}
+                className="w-full border p-2 mb-4 rounded"
+              />
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddDoctor}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
