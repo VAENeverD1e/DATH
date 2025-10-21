@@ -52,15 +52,6 @@ export default function FloatingMenu() {
               </Link>
                             
               <Link
-                to="/AdminDashboard"
-                className="block px-4 py-2 text-center rounded-lg border hover:bg-gray-100"
-                onClick={() => setOpen(false)}
-              >
-                AdminDashboard
-              </Link>
-<<<<<<< HEAD
-
-              <Link
                 to="/services"
                 className="block px-4 py-2 text-center rounded-lg border hover:bg-gray-100"
                 onClick={() => setOpen(false)}
@@ -70,17 +61,11 @@ export default function FloatingMenu() {
 
               <Link
                 to="/admin"
-=======
-                            
-              <Link
-                to="/AdminDashboard"
->>>>>>> e9681526f344f559c810e236945d152404e92c55
                 className="block px-4 py-2 text-center rounded-lg border hover:bg-gray-100"
                 onClick={() => setOpen(false)}
               >
                 AdminDashboard
               </Link>
-<<<<<<< HEAD
 
               <Link
                 to="/doctor"
@@ -90,8 +75,6 @@ export default function FloatingMenu() {
                 DoctorDashboard
               </Link>
 
-=======
->>>>>>> e9681526f344f559c810e236945d152404e92c55
             </div>
 
             <button
