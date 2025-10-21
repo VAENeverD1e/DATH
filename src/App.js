@@ -6,7 +6,7 @@ import HomePage from "./pages/HomePage";
 import FloatingMenu from "./components/FloatingMenu";
 import AdminDashboard from "./pages/AdminDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
-import ServicePage from "./Service";
+import ServicePage from "./pages/Service";
 // import { Home } from "lucide-react"; // bỏ vì không dùng
 
 export default function App() {
