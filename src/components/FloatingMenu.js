@@ -50,6 +50,14 @@ export default function FloatingMenu() {
               >
                 Register
               </Link>
+                            
+              <Link
+                to="/AdminDashboard"
+                className="block px-4 py-2 text-center rounded-lg border hover:bg-gray-100"
+                onClick={() => setOpen(false)}
+              >
+                AdminDashboard
+              </Link>
             </div>
 
             <button
