@@ -29,6 +29,12 @@ const Login = () => {
   // Remember me checkbox
   const [rememberMe, setRememberMe] = useState(false);
 
+  // Dummy users for front-end testing
+  const DUMMY_USERS = [
+    { email: "you@example.com", password: "Password123" },
+    { email: "doctor@example.com", password: "DocPass789" },
+  ];
+
   // Validate inputs
   const validate = () => {
     let valid = true;
@@ -48,9 +54,17 @@ const Login = () => {
   };
 
   // Simulate login (replace with real API)
-  const fakeLogin = () => {
-    // For demo, return true to simulate success; replace with real auth call
-    return true;
+  const fakeLogin = (emailInput, passwordInput) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const user = DUMMY_USERS.find(
+          (u) =>
+            u.email.toLowerCase() === emailInput.toLowerCase() &&
+            u.password === passwordInput
+        );
+        resolve(!!user);
+      }, 1000); // Simulate 1 second delay
+    });
   };
 
   // Handle lockout countdown
@@ -72,36 +86,48 @@ const Login = () => {
     return () => clearInterval(lockoutTimer.current);
   }, [lockout]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (lockout) return;
     if (!validate()) return;
 
-    // Simulate login. Replace with real authentication.
-    const loginSuccess = fakeLogin();
-    if (loginSuccess) {
-      setLoading(true);
+    setLoading(true);
+    setGeneralError("");
 
-      // Simulate async login (replace with real authentication)
-      setTimeout(() => {
-        setLoading(false); 
-        navigate("/home", { replace: true });
-        }, 2000); // Simulate 2 seconds of "buffering"
-    } else {
-      setFailedAttempts((prev) => {
-        const newCount = prev + 1;
-        if (newCount >= LOCKOUT_LIMIT) {
-          setLockout(true);
-          setGeneralError("Too many failed attempts. Please try again later.");
-        } else {
-          setGeneralError(
-            `Invalid email or password. Attempts remaining: ${LOCKOUT_LIMIT - newCount}`
-          );
-        }
-        return newCount;
-      });
+    try {
+      const success = await fakeLogin(email, password);
+
+      if (success) {
+        // successful login
+        setTimeout(() => {
+          setLoading(false);
+          navigate("/", { replace: true });
+        }, 800); // brief delay to simulate redirect
+      } else {
+        // failed login attempt
+        setLoading(false);
+        setFailedAttempts((prev) => {
+          const newCount = prev + 1;
+          if (newCount >= LOCKOUT_LIMIT) {
+            setLockout(true);
+            setGeneralError("Too many failed attempts. Please try again later.");
+          } else {
+            setGeneralError(
+              `Invalid email or password. Attempts remaining: ${
+                LOCKOUT_LIMIT - newCount
+              }`
+            );
+          }
+          return newCount;
+        });
+      }
+    } catch (err) {
+      console.error("Mock login error:", err);
+      setGeneralError("Unexpected error. Try again later.");
+      setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center relative" style={{ fontFamily: "'Poppins', 'Arial', sans-serif" }}>
@@ -240,6 +266,12 @@ const Login = () => {
               Remember me
             </label>
           </div>
+
+          <p className="text-sm text-center text-gray-500 mt-8">
+            Dummy Users: <br />
+            - Email: <strong>you@example.com</strong>, Password: <strong>Password123</strong> <br />
+            - Email: <strong>doctor@example.com</strong>, Password: <strong>DocPass789</strong>
+          </p>
           <button
             type="submit"
             className={`w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition ${

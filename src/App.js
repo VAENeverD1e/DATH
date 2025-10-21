@@ -7,6 +7,7 @@ import FloatingMenu from "./components/FloatingMenu";
 import AdminDashboard from "./pages/AdminDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import ServicePage from "./Service";
+import AdminLogin from "./pages/AdminLogin";
 // import { Home } from "lucide-react"; // bỏ vì không dùng
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
         {/* routes không bọc layout */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
 
         {/* routes bọc layout */}
         <Route
