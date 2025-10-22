@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [isUserOpen, setIsUserOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+  const userMenuRef = useRef(null);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -11,6 +15,50 @@ const NavBar = () => {
 
   const toggleLanguage = () => {
     setIsLanguageOpen(!isLanguageOpen);
+  };
+
+  const toggleUserMenu = () => {
+    setIsUserOpen(!isUserOpen);
+  };
+
+  useEffect(() => {
+    // Read user from sessionStorage first (remember-me = false), then fall back to localStorage
+    try {
+      const rawSession = sessionStorage.getItem('user');
+      const rawLocal = localStorage.getItem('user');
+      const raw = rawSession || rawLocal;
+      if (raw) setUser(JSON.parse(raw));
+    } catch (e) {
+      // ignore parse errors
+    }
+  }, []);
+
+  useEffect(() => {
+    // Close user menu on outside click
+    const handleClick = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setIsUserOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
+    setUser(null);
+    setIsUserOpen(false);
+    navigate('/admin-login');
+  };
+
+  const goToDashboard = () => {
+    setIsUserOpen(false);
+    if (!user || !user.role) return navigate('/');
+    // Basic role-based dashboard routing
+    if (user.role === 'admin') return navigate('/admin-dashboard');
+    if (user.role === 'doctor') return navigate('/doctor');
+    return navigate('/home');
   };
 
   return (
@@ -30,7 +78,7 @@ const NavBar = () => {
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
             <Link 
-              to="/" 
+              to="/home" 
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200"
             >
               Home
@@ -58,9 +106,31 @@ const NavBar = () => {
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
             {/* Log in Button */}
-            <Link to="/login" className="px-6 py-2 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors duration-200 font-medium">
-              Log in
-            </Link>
+            {!user ? (
+              <Link to="/admin-login" className="px-6 py-2 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors duration-200 font-medium">
+                Log in
+              </Link>
+            ) : (
+              <div className="relative" ref={userMenuRef}>
+                <button onClick={toggleUserMenu} className="flex items-center space-x-3 border border-gray-200 rounded-full px-3 py-1 hover:shadow-sm transition-shadow duration-150">
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="avatar" className="h-9 w-9 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-9 w-9 rounded-full bg-blue-400 text-white flex items-center justify-center font-semibold">
+                      {user.name ? user.name.split(' ').map(s => s[0]).slice(0,2).join('') : 'U'}
+                    </div>
+                  )}
+                  <span className="hidden sm:inline font-medium">Hello ~</span>
+                </button>
+
+                {isUserOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+                    <button onClick={goToDashboard} className="w-full text-left px-4 py-2 hover:bg-gray-50">Dashboard</button>
+                    <button onClick={handleLogout} className="w-full text-left px-4 py-2 hover:bg-gray-50">Logout</button>
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* Language Selector */}
             <div className="relative">

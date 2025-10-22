@@ -99,9 +99,26 @@ const Login = () => {
 
       if (success) {
         // successful login
+        // Create a minimal user object for the app and persist it so NavBar can read it
+        const userObj = {
+          name: email.toLowerCase() === 'doctor@example.com' ? 'Dr. Example' : 'User Example',
+          avatarUrl: '',
+          role: email.toLowerCase() === 'doctor@example.com' ? 'doctor' : 'user',
+        };
+        try {
+          // Persist to localStorage when "Remember me" is checked, otherwise use sessionStorage
+          if (rememberMe) {
+            localStorage.setItem('user', JSON.stringify(userObj));
+          } else {
+            sessionStorage.setItem('user', JSON.stringify(userObj));
+          }
+        } catch (e) {
+          // ignore storage errors
+        }
+
         setTimeout(() => {
           setLoading(false);
-          navigate("/", { replace: true });
+          navigate('/home', { replace: true });
         }, 800); // brief delay to simulate redirect
       } else {
         // failed login attempt

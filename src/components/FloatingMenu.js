@@ -35,7 +35,7 @@ export default function FloatingMenu() {
                 Login
               </Link>
               <Link
-                to="/admin-login"
+                to="/"
                 className="block px-4 py-2 text-center rounded-lg border hover:bg-gray-100"
                 onClick={() => setOpen(false)}
               >
@@ -43,7 +43,7 @@ export default function FloatingMenu() {
               </Link>
 
               <Link
-                to="/"
+                to="/home"
                 className="block px-4 py-2 text-center rounded-lg border hover:bg-gray-100"
                 onClick={() => setOpen(false)}
               >

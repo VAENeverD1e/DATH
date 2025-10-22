@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./Layout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -8,7 +8,6 @@ import AdminDashboard from "./pages/AdminDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import ServicePage from "./pages/Service";
-// import { Home } from "lucide-react"; // bỏ vì không dùng
 
 export default function App() {
   return (
@@ -20,8 +19,12 @@ export default function App() {
         <Route path="/admin-login" element={<AdminLogin />} />
 
         {/* routes bọc layout */}
+        {/* make root redirect to admin-login */}
+        <Route path="/" element={<Navigate to="/admin-login" replace />} />
+
+        {/* public homepage moved to /home */}
         <Route
-          path="/"
+          path="/home"
           element={
             <Layout>
               <HomePage />
