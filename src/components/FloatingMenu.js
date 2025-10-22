@@ -57,6 +57,31 @@ export default function FloatingMenu() {
               >
                 Register
               </Link>
+                            
+              <Link
+                to="/services"
+                className="block px-4 py-2 text-center rounded-lg border hover:bg-gray-100"
+                onClick={() => setOpen(false)}
+              >
+                ServicePage
+              </Link>
+
+              <Link
+                to="/admin"
+                className="block px-4 py-2 text-center rounded-lg border hover:bg-gray-100"
+                onClick={() => setOpen(false)}
+              >
+                AdminDashboard
+              </Link>
+
+              <Link
+                to="/doctor"
+                className="block px-4 py-2 text-center rounded-lg border hover:bg-gray-100"
+                onClick={() => setOpen(false)}
+              >
+                DoctorDashboard
+              </Link>
+
             </div>
 
             <button

@@ -1,18 +1,5 @@
-// src/pages/DoctorDashboard.js
 import React, { useMemo, useState } from "react";
 import NavBar from "../components/NavBar";
-import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const backgroundImage =
   process.env.PUBLIC_URL + "/assets/artistic-blurry-colorful-wallpaper-background.jpg";
@@ -133,30 +120,6 @@ const DoctorDashboard = () => {
     setNoteModal({ open: false, report_id: null, text: "" });
   };
 
-  // ==== Chart: Appointment by Status (Scheduled/Completed/Cancelled) ====
-  const chartData = useMemo(() => {
-    const counts = appointments.reduce(
-      (acc, a) => ({ ...acc, [a.status]: (acc[a.status] || 0) + 1 }),
-      {}
-    );
-    const labels = ["Scheduled", "Completed", "Cancelled"];
-    return {
-      labels,
-      datasets: [
-        {
-          label: "Appointments",
-          data: labels.map((l) => counts[l] || 0),
-          backgroundColor: ["#60a5fa", "#34d399", "#f87171"],
-        },
-      ],
-    };
-  }, [appointments]);
-
-  const chartOptions = {
-    responsive: true,
-    plugins: { legend: { display: false }, title: { display: true, text: "Appointments by Status" } },
-    maintainAspectRatio: false,
-  };
 
   return (
     <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
@@ -221,8 +184,7 @@ const DoctorDashboard = () => {
           </div>
         </div>
 
-        {/* Top grid: Schedule + Chart */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {/* Working Schedule */}
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
@@ -302,14 +264,6 @@ const DoctorDashboard = () => {
               <button onClick={addInterval} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                 + Add Interval
               </button>
-            </div>
-          </div>
-
-          {/* Chart */}
-          <div className="bg-white shadow rounded-lg p-6 flex flex-col" style={{ minHeight: 360 }}>
-            <h2 className="text-lg font-semibold mb-4">Appointments by Status</h2>
-            <div style={{ width: "100%", height: 260 }}>
-              <Bar data={chartData} options={chartOptions} />
             </div>
           </div>
         </div>
