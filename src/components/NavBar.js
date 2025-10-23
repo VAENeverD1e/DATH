@@ -58,6 +58,7 @@ const NavBar = () => {
     // Basic role-based dashboard routing
     if (user.role === 'admin') return navigate('/admin-dashboard');
     if (user.role === 'doctor') return navigate('/doctor');
+    if (user.role === 'user') return navigate('/user-dashboard');
     return navigate('/home');
   };
 
