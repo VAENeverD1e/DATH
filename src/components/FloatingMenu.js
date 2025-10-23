@@ -34,6 +34,7 @@ export default function FloatingMenu() {
               >
                 Login
               </Link>
+
               <Link
                 to="/"
                 className="block px-4 py-2 text-center rounded-lg border hover:bg-gray-100"

@@ -8,6 +8,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import ServicePage from "./pages/Service";
+import { UserDashboard } from "./pages/UserDashboard";
+import { AppointmentDashboard } from "./pages/AppointmentDashboard";
 
 export default function App() {
   return (
@@ -32,6 +34,14 @@ export default function App() {
           }
         />
         <Route
+          path="/user-dashboard"
+          element={
+            <Layout>
+              <UserDashboard />
+            </Layout>
+          }
+        />
+        <Route
           path="/admin"
           element={
             <Layout>
@@ -52,6 +62,14 @@ export default function App() {
           element={
             <Layout>
               <DoctorDashboard />
+            </Layout>
+          }
+        />
+        <Route
+          path="/appointment-dashboard"
+          element={
+            <Layout>
+              <AppointmentDashboard />
             </Layout>
           }
         />
