@@ -1,7 +1,8 @@
 const express = require('express')
 const router = express.Router()
 const supabase = require('../../supabaseClient')
-// const authMiddleware = require('../../middlewares/authMiddleware')
+const authMiddleware = require('../../middlewares/authMiddleware')
+const { generateSlotsFromAvailability } = require('../service/slots.routes') // Import from slots.routes.js if needed
 
 // GET /api/doctors/availability
 router.get('/', async (req, res) => {
@@ -17,7 +18,9 @@ router.post('/', async (req, res) => {
   // #TODO: Query Doctor table to get doctor_id from user_id (req.user.id)
   // #TODO: Get day_of_week, start_time, end_time from req.body
   // #TODO: Validate time range is valid (start_time < end_time)
-  // #TODO: Insert into Availability table (NOT Slot - slots are generated later when patients search)
+  // #TODO: Insert into Availability table
+  // #TODO: Generate 30-minute slots using generateSlotsFromAvailability() from slots.routes.js
+  // #TODO: Create slot records in Slot table for multiple dates (next 30 days, etc.)
   // #TODO: Return success with new availability record: availability_id, doctor_id, day_of_week, start_time, end_time
 })
 
