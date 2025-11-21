@@ -23,9 +23,9 @@ const stats = [
 ];
 
 const appointments = [
-  { date: "2025-10-18", time: "09:00", durations: "60 mins", doctor: "Dr. Chấn Hưng", patient: "Thanh Huy" },
-  { date: "2025-10-18", time: "10:30", durations: "45 mins", doctor: "Dr. Chấn Hưng", patient: "Quang Huy" },
-  { date: "2025-10-18", time: "11:15", durations: "35 mins", doctor: "Dr. Chấn Hưng", patient: "Mạnh Hưng" },
+  { date: "2025-10-18", time: "09:00", durations: "60 mins", doctor: "Dr. Chấn Hưng", patient: "Thanh Huy", reason: "Chest pain" , status: "Scheduled"},
+  { date: "2025-10-18", time: "10:30", durations: "45 mins", doctor: "Dr. Chấn Hưng", patient: "Quang Huy", reason: "Follow-up" , status: "Scheduled"},
+  { date: "2025-10-18", time: "11:15", durations: "35 mins", doctor: "Dr. Chấn Hưng", patient: "Mạnh Hưng", reason: "ECG review" , status: "Completed"},
 ];
 
 const chartData = {
@@ -158,6 +158,9 @@ const AdminDashboard = () => {
                 <th className="px-4 py-2 text-left">Duration</th>
                 <th className="px-4 py-2 text-left">Doctor</th>
                 <th className="px-4 py-2 text-left">Patient</th>
+                <th className="px-4 py-2 text-left">Reason</th>
+                <th className="px-4 py-2 text-left">Status</th>
+
               </tr>
             </thead>
             <tbody>
@@ -168,6 +171,8 @@ const AdminDashboard = () => {
                   <td className="px-4 py-2">{appt.durations}</td>
                   <td className="px-4 py-2">{appt.doctor}</td>
                   <td className="px-4 py-2">{appt.patient}</td>
+                  <td className="px-4 py-2">{appt.reason}</td>
+                  <td className="px-4 py-2">{appt.status}</td>
                 </tr>
               ))}
             </tbody>
@@ -175,7 +180,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
           <div className="bg-white shadow rounded-lg p-6 flex flex-col items-center" style={{ height: 300 }}>
             <h2 className="text-lg font-semibold mb-4">Statistics Chart</h2>
             <div style={{ width: "100%", height: 200 }}>
@@ -188,7 +193,7 @@ const AdminDashboard = () => {
               <Pie data={visitTypeData} options={pieOptions} />
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Doctors Table */}
         <div className="bg-white shadow rounded-lg p-6 mt-8">
