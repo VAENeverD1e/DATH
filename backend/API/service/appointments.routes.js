@@ -17,13 +17,72 @@ router.post('/', async (req, res) => {
 })
 
 // GET /api/appointments/my (patient's appointments) - Lê Mạnh Hưng
-router.get('/my', async (req, res) => {
-  // #TODO: Use authMiddleware to get user_id from req.user (add authMiddleware to this route)
-  // #TODO: Query Patients table to get patient_id (id) from user_id
-  // #TODO: Query Appointment table where patient_id matches
-  // #TODO: Join with Doctor, Users (for doctor info), and Slot (for date/time) tables
-  // #TODO: Return list of appointments with: appointment_id, doctor name, specialization, date, start_time, end_time, duration, reason_for_visit, status
-})
+router.get('/my', authMiddleware, async (req, res) => {
+  try {
+    // Use authMiddleware to get user_id from req.user
+    const userId = req.user.id;
+
+    // Query Patients table to get patient_id (id) from user_id
+    const { data: patient, error: patientError } = await supabase
+      .from('Patients')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+
+    if (patientError || !patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    const patientId = patient.id;
+
+    // Query Appointment table where patient_id matches
+    // Join with Doctor, Users (for doctor info), and Slot (for date/time) tables
+    const { data: appointments, error: appointmentsError } = await supabase
+      .from('Appointments')
+      .select(`
+        id,
+        reason_for_visit,
+        status,
+        Doctors (
+          Users (
+            username
+          ),
+          specialization
+        ),
+        Slots (
+          date,
+          start_time,
+          end_time,
+          duration
+        )
+      `)
+      .eq('patient_id', patientId);
+
+    if (appointmentsError) {
+      throw appointmentsError;
+    }
+
+    // Return list of appointments with the required fields
+    const response = appointments.map(appt => ({
+      appointment_id: appt.id,
+      doctor_name: appt.Doctors.Users.username,
+      specialization: appt.Doctors.specialization,
+      date: appt.Slots.date,
+      start_time: appt.Slots.start_time,
+      end_time: appt.Slots.end_time,
+      duration: appt.Slots.duration,
+      reason_for_visit: appt.reason_for_visit,
+      status: appt.status,
+    }));
+
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
+
 
 // GET /api/appointments/doctor (doctor's appointments) - Nguyễn Quang Huy
 router.get('/doctor', async (req, res) => {
