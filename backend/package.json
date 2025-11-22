@@ -1,0 +1,19 @@
+{
+  "name": "dath-backend",
+  "version": "0.1.0",
+  "private": true,
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "test-connection": "node server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.81.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcrypt" : "^5.1.1"
+  }
+}
