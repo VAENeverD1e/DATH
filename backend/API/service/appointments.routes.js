@@ -26,26 +26,106 @@ router.get('/my', async (req, res) => {
 })
 
 // GET /api/appointments/doctor (doctor's appointments) - Nguyễn Quang Huy
-router.get('/doctor', async (req, res) => {
-  // #TODO: Use authMiddleware, check role='doctor' (add authMiddleware and requireRole to this route)
-  // #TODO: Query Doctor table to get doctor_id from user_id (req.user.id)
-  // #TODO: Get optional query param: date from req.query (default to today's date)
-  // #TODO: Query Appointment table where doctor_id matches
-  // #TODO: Join with Slot table to filter by date
-  // #TODO: Join with Patients and Users tables to get patient info
-  // #TODO: Return list of appointments with: appointment_id, patient name, phone_number, date, start_time, end_time, duration, reason_for_visit, status
+router.get('/doctor', authMiddleware, requireRole('doctor'), async (req, res) => {
+  try {
+    // 1. Get doctor_id
+    const { data: doctor } = await supabase
+      .from('Doctor')
+      .select('doctor_id')
+      .eq('user_id', req.user.id)
+      .single()
+      
+    if (!doctor) return res.status(403).json({ error: 'Doctor profile not found' })
+
+    // 2. Get date from query (default today)
+    const dateFilter = req.query.date || new Date().toISOString().split('T')[0]
+
+    // 3. Query appointments
+    
+    const { data: appointments, error } = await supabase
+      .from('Appointment')
+      .select(`
+        appointment_id,
+        status,
+        reason_for_visit,
+        duration,
+        Slot!inner (
+          date,
+          start_time,
+          end_time
+        ),
+        Patients (
+          id,
+          Users (
+            username,
+            phone_number,
+            email,
+            gender,
+            date_of_birth
+          )
+        )
+      `)
+      .eq('doctor_id', doctor.doctor_id)
+      .eq('Slot.date', dateFilter)
+      .order('start_time', { foreignTable: 'Slot', ascending: true })
+
+    if (error) throw error
+
+    // 4. Format data
+    const formattedData = appointments.map(app => ({
+      appointment_id: app.appointment_id,
+      status: app.status,
+      date: app.Slot.date,
+      start_time: app.Slot.start_time,
+      end_time: app.Slot.end_time,
+      patient_name: app.Patients?.Users?.username || 'Unknown',
+      patient_phone: app.Patients?.Users?.phone_number,
+      reason: app.reason_for_visit
+    }))
+
+    return res.json(formattedData)
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
 })
 
 // PATCH /api/appointments/:id/status (doctor marks status) - Nguyễn Quang Huy
-router.patch('/:id/status', async (req, res) => {
-  // #TODO: Use authMiddleware, check role='doctor' (add authMiddleware and requireRole to this route)
-  // #TODO: Query Doctor table to get doctor_id from user_id (req.user.id)
-  // #TODO: Get appointment_id from req.params.id
-  // #TODO: Get new status from req.body (valid values: 'Pending', 'Confirmed', 'Completed', 'Cancelled')
-  // #TODO: Query Appointment table to verify appointment_id exists and belongs to this doctor_id
-  // #TODO: If not found or wrong doctor, return 403 error 'Not authorized'
-  // #TODO: Update Appointment status in database
-  // #TODO: Return success response with updated appointment
+router.patch('/:id/status', authMiddleware, requireRole('doctor'), async (req, res) => {
+  try {
+    const appointmentId = req.params.id
+    const { status } = req.body
+    const validStatuses = ['Pending', 'Confirmed', 'Completed', 'Cancelled']
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' })
+    }
+
+    // 1. Get doctor_id
+    const { data: doctor } = await supabase
+      .from('Doctor')
+      .select('doctor_id')
+      .eq('user_id', req.user.id)
+      .single()
+
+    // 2. Update with condition that the doctor_id owns this appointment
+    const { data, error } = await supabase
+      .from('Appointment')
+      .update({ status: status })
+      .eq('appointment_id', appointmentId)
+      .eq('doctor_id', doctor.doctor_id) // Security: Only update if correct doctor
+      .select()
+
+    if (error) throw error
+    if (!data || data.length === 0) {
+      return res.status(403).json({ error: 'Appointment not found or you are not authorized' })
+    }
+
+    return res.json(data[0])
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
 })
 
 module.exports = router
