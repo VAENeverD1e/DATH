@@ -22,15 +22,38 @@ const NavBar = () => {
   };
 
   useEffect(() => {
-    // Read user from sessionStorage first (remember-me = false), then fall back to localStorage
-    try {
-      const rawSession = sessionStorage.getItem('user');
-      const rawLocal = localStorage.getItem('user');
-      const raw = rawSession || rawLocal;
-      if (raw) setUser(JSON.parse(raw));
-    } catch (e) {
-      // ignore parse errors
-    }
+    // Read user from auth object in storage
+    const loadUser = () => {
+      try {
+        const rawSession = sessionStorage.getItem('auth');
+        const rawLocal = localStorage.getItem('auth');
+        const raw = rawSession || rawLocal;
+        if (raw) {
+          const auth = JSON.parse(raw);
+          if (auth && auth.user) {
+            setUser(auth.user);
+          }
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
+    };
+
+    loadUser();
+
+    // Listen for storage changes (when user logs in)
+    const handleStorageChange = () => {
+      loadUser();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    // Custom event for same-tab storage updates
+    window.addEventListener('authChanged', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('authChanged', handleStorageChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -45,10 +68,12 @@ const NavBar = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('user');
+    localStorage.removeItem('auth');
+    sessionStorage.removeItem('auth');
     setUser(null);
     setIsUserOpen(false);
+    // Dispatch custom event for same-tab updates
+    window.dispatchEvent(new Event('authChanged'));
     navigate('/admin-login');
   };
 
@@ -56,9 +81,9 @@ const NavBar = () => {
     setIsUserOpen(false);
     if (!user || !user.role) return navigate('/');
     // Basic role-based dashboard routing
-    if (user.role === 'admin') return navigate('/admin-dashboard');
+    if (user.role === 'admin') return navigate('/admin');
     if (user.role === 'doctor') return navigate('/doctor');
-    if (user.role === 'user') return navigate('/user-dashboard');
+    if (user.role === 'patient') return navigate('/user-dashboard');
     return navigate('/home');
   };
 

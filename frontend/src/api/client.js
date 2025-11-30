@@ -44,6 +44,8 @@ export function setAuth(auth, rememberMe = false) {
   const storage = rememberMe ? localStorage : sessionStorage;
   try {
     storage.setItem('auth', JSON.stringify(auth));
+    // Dispatch custom event to notify components of auth change
+    window.dispatchEvent(new Event('authChanged'));
   } catch (e) {
     console.error('Failed to save auth to storage:', e);
   }

@@ -51,9 +51,32 @@ const AdminDashboard = () => {
   const handleAddDoctor = async () => {
     try {
       setError("");
+      
+      // Validate required fields
+      if (!newDoctor.email || !newDoctor.email.trim()) {
+        setError("Email is required for doctor login");
+        return;
+      }
+      if (!newDoctor.username || !newDoctor.username.trim()) {
+        setError("Username is required");
+        return;
+      }
+      if (!newDoctor.password) {
+        setError("Password is required");
+        return;
+      }
+      if (!newDoctor.license_number || !newDoctor.license_number.trim()) {
+        setError("License number is required");
+        return;
+      }
+      if (!newDoctor.department_id) {
+        setError("Department is required");
+        return;
+      }
+      
       const body = {
         username: newDoctor.username,
-        email: newDoctor.email || null,
+        email: newDoctor.email,
         password: newDoctor.password,
         phone_number: newDoctor.phone_number || null,
         specialization: newDoctor.specialization || null,
@@ -271,24 +294,27 @@ const AdminDashboard = () => {
               <h2 className="text-lg font-semibold mb-4">Add New Doctor</h2>
               <input
                 type="text"
-                placeholder="Username"
+                placeholder="Username *"
                 value={newDoctor.username}
                 onChange={(e) => setNewDoctor({ ...newDoctor, username: e.target.value })}
                 className="w-full border p-2 mb-2 rounded"
+                required
               />
               <input
                 type="email"
-                placeholder="Email (optional)"
+                placeholder="Email * (required for login)"
                 value={newDoctor.email}
                 onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
                 className="w-full border p-2 mb-2 rounded"
+                required
               />
               <input
                 type="password"
-                placeholder="Password"
+                placeholder="Password *"
                 value={newDoctor.password}
                 onChange={(e) => setNewDoctor({ ...newDoctor, password: e.target.value })}
                 className="w-full border p-2 mb-2 rounded"
+                required
               />
               <input
                 type="text"
@@ -299,17 +325,11 @@ const AdminDashboard = () => {
               />
               <input
                 type="text"
-                placeholder="Specialization (optional)"
-                value={newDoctor.specialization}
-                onChange={(e) => setNewDoctor({ ...newDoctor, specialization: e.target.value })}
-                className="w-full border p-2 mb-2 rounded"
-              />
-              <input
-                type="text"
-                placeholder="License Number"
+                placeholder="License Number *"
                 value={newDoctor.license_number}
                 onChange={(e) => setNewDoctor({ ...newDoctor, license_number: e.target.value })}
                 className="w-full border p-2 mb-2 rounded"
+                required
               />
               <input
                 type="number"
@@ -320,14 +340,30 @@ const AdminDashboard = () => {
               />
               <select
                 value={newDoctor.department_id}
-                onChange={(e) => setNewDoctor({ ...newDoctor, department_id: e.target.value })}
-                className="w-full border p-2 mb-4 rounded"
+                onChange={(e) => {
+                  const deptId = e.target.value;
+                  const selectedDept = departments.find(d => d.department_id === parseInt(deptId));
+                  setNewDoctor({ 
+                    ...newDoctor, 
+                    department_id: deptId,
+                    specialization: selectedDept ? selectedDept.name : ''
+                  });
+                }}
+                className="w-full border p-2 mb-2 rounded"
               >
                 <option value="">Select Department</option>
                 {departments.map(d => (
                   <option key={d.department_id} value={d.department_id}>{d.name}</option>
                 ))}
               </select>
+              <input
+                type="text"
+                placeholder="Specialization (auto-filled from department)"
+                value={newDoctor.specialization}
+                readOnly
+                className="w-full border p-2 mb-4 rounded bg-gray-100 cursor-not-allowed"
+                title="Specialization is automatically set based on the selected department"
+              />
 
               <div className="flex justify-end gap-2">
                 <button
