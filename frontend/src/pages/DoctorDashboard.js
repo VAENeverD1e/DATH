@@ -1,125 +1,129 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import NavBar from "../components/NavBar";
+import { apiGet, apiPost, apiPatch, apiDelete, getAuth } from "../api/client";
 
 const backgroundImage =
   process.env.PUBLIC_URL + "/assets/artistic-blurry-colorful-wallpaper-background.jpg";
 
 const DoctorDashboard = () => {
-  // ==== Dummy doctor profile ====
-  const doctor = {
-    doctor_id: "D001",
-    name: "Dr. Quang Huy",
-    license_number: "LIC-987654",
-    specialization: "Cardiology",
-    years_of_experience: 8,
-    department: "Internal Medicine",
-  };
+  // ==== Doctor profile from JWT ====
+  const { user } = getAuth();
+  const doctorName = user?.username || "Doctor";
+
+  // ==== Error handling ====
+  const [error, setError] = useState(null);
 
   // ==== Working schedule / Availability ====
-  const [isAway, setIsAway] = useState(false); // UC: Mark "Free" or "Away"
-  const [availabilities, setAvailabilities] = useState([
-    { id: 1, day_of_week: "Mon", start_time: "09:00", end_time: "11:30" },
-    { id: 2, day_of_week: "Wed", start_time: "13:30", end_time: "16:30" },
-    { id: 3, day_of_week: "Fri", start_time: "09:00", end_time: "12:00" },
-  ]);
+  const [availabilities, setAvailabilities] = useState([]);
   const [newAvail, setNewAvail] = useState({
-    day_of_week: "Mon",
+    day_of_week: "Monday",
     start_time: "09:00",
     end_time: "10:00",
   });
 
-  const addInterval = () => {
-    if (!newAvail.start_time || !newAvail.end_time) return;
-    const next = {
-      id: Date.now(),
-      ...newAvail,
-    };
-    setAvailabilities((prev) => [...prev, next]);
-    setNewAvail({ day_of_week: "Mon", start_time: "09:00", end_time: "10:00" });
-  };
-  const removeInterval = (id) =>
-    setAvailabilities((prev) => prev.filter((a) => a.id !== id));
-
   // ==== Appointments ====
-  const [appointments, setAppointments] = useState([
-    {
-      appointment_id: "A1001",
-      appointment_date: "2025-10-19",
-      appointment_time: "09:30",
-      duration: "30 min",
-      patient: "Nguyen Van A",
-      reason_for_visit: "Chest pain",
-      status: "Scheduled",
-    },
-    {
-      appointment_id: "A1002",
-      appointment_date: "2025-10-19",
-      appointment_time: "10:30",
-      duration: "30 min",
-      patient: "Tran Thi B",
-      reason_for_visit: "Follow-up",
-      status: "Scheduled",
-    },
-    {
-      appointment_id: "A1003",
-      appointment_date: "2025-10-20",
-      appointment_time: "14:00",
-      duration: "45 min",
-      patient: "Le Van C",
-      reason_for_visit: "ECG review",
-      status: "Completed",
-    },
-  ]);
+  const [appointments, setAppointments] = useState([]);
 
-  const updateApptStatus = (id, status) =>
-    setAppointments((prev) =>
-      prev.map((a) => (a.appointment_id === id ? { ...a, status } : a))
-    );
+  // ==== Medical Report Modal ====
+  const [reportModal, setReportModal] = useState({
+    open: false,
+    appointment_id: null,
+    diagnosis: "",
+    treatment_plan: "",
+  });
 
-  const notify = (appt) => {
-    // Notify Patient and Admin
-    alert(
-      `Notification sent to Patient & Admin for appointment ${appt.appointment_id} (${appt.patient})`
-    );
+  // ==== Load data on mount ====
+  useEffect(() => {
+    loadAvailabilities();
+    loadAppointments();
+  }, []);
+
+  const loadAvailabilities = async () => {
+    try {
+      const data = await apiGet("/api/doctors/availability", { auth: true });
+      setAvailabilities(data || []);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load availabilities: " + err.message);
+    }
   };
 
-  // ==== Patient Records ====
-  const [records, setRecords] = useState([
-    {
-      report_id: "R-01",
-      patient: "Nguyen Van A",
-      diagnosis: "Stable angina",
-      treatment_plan: "Medication + lifestyle changes",
-      last_update: "2025-10-10",
-      notes: [],
-    },
-    {
-      report_id: "R-02",
-      patient: "Tran Thi B",
-      diagnosis: "Hypertension",
-      treatment_plan: "ACE inhibitors",
-      last_update: "2025-10-12",
-      notes: [],
-    },
-  ]);
-  const [noteModal, setNoteModal] = useState({ open: false, report_id: null, text: "" });
-  const openNoteModal = (report_id) => setNoteModal({ open: true, report_id, text: "" });
-  const saveNote = () => {
-    if (!noteModal.text.trim()) return;
-    setRecords((prev) =>
-      prev.map((r) =>
-        r.report_id === noteModal.report_id
-          ? {
-              ...r,
-              notes: [...r.notes, { ts: new Date().toISOString(), text: noteModal.text }],
-              last_update: new Date().toISOString().slice(0, 10),
-            }
-          : r
-      )
-    );
-    setNoteModal({ open: false, report_id: null, text: "" });
+  const loadAppointments = async () => {
+    try {
+      const data = await apiGet("/api/appointments/doctor", { auth: true });
+      setAppointments(data || []);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load appointments: " + err.message);
+    }
   };
 
+  const addInterval = async () => {
+    if (!newAvail.start_time || !newAvail.end_time) return;
+    try {
+      await apiPost("/api/doctors/availability", newAvail, { auth: true });
+      setNewAvail({ day_of_week: "Monday", start_time: "09:00", end_time: "10:00" });
+      loadAvailabilities(); // Reload to get new availability with generated slots
+      setError(null);
+    } catch (err) {
+      setError("Failed to add availability: " + err.message);
+    }
+  };
+
+  const removeInterval = async (id) => {
+    try {
+      await apiDelete(`/api/doctors/availability/${id}`, { auth: true });
+      loadAvailabilities();
+      setError(null);
+    } catch (err) {
+      setError("Failed to remove availability: " + err.message);
+    }
+  };
+
+
+  const updateApptStatus = async (id, status) => {
+    if (status === "Completed") {
+      // Open modal for medical report
+      setReportModal({
+        open: true,
+        appointment_id: id,
+        diagnosis: "",
+        treatment_plan: "",
+      });
+    } else {
+      // Direct status update (e.g., Cancelled)
+      try {
+        await apiPatch(`/api/appointments/${id}/status`, { status }, { auth: true });
+        loadAppointments();
+        setError(null);
+      } catch (err) {
+        setError("Failed to update appointment: " + err.message);
+      }
+    }
+  };
+
+  const saveReport = async () => {
+    if (!reportModal.diagnosis.trim() || !reportModal.treatment_plan.trim()) {
+      setError("Both diagnosis and treatment plan are required");
+      return;
+    }
+    try {
+      await apiPost(
+        "/api/reports",
+        {
+          appointment_id: reportModal.appointment_id,
+          diagnosis: reportModal.diagnosis,
+          treatment_plan: reportModal.treatment_plan,
+        },
+        { auth: true }
+      );
+      setReportModal({ open: false, appointment_id: null, diagnosis: "", treatment_plan: "" });
+      loadAppointments(); // Reload to see updated status
+      setError(null);
+    } catch (err) {
+      setError("Failed to save report: " + err.message);
+    }
+  };
 
   return (
     <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
@@ -150,179 +154,243 @@ const DoctorDashboard = () => {
             "'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'",
         }}
       >
-        {/* Header */}
-        <div className="flex items-center mb-8 w-full relative" style={{ minHeight: 56 }}>
-          <span className="absolute left-1/2 transform -translate-x-1/2 text-3xl font-bold text-indigo-700 text-center w-max">
-            Doctor Dashboard
-          </span>
-        </div>
+        <h1 style={{ fontSize: "2.25rem", fontWeight: "700", color: "#1e293b", marginTop: "1.5rem", marginBottom: "1.5rem" }}>
+          Doctor Dashboard
+        </h1>
 
-        {/* Doctor card */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <div className="flex flex-wrap gap-6 items-center justify-between">
-            <div>
-              <div className="text-xl font-semibold">{doctor.name}</div>
-              <div className="text-sm text-gray-600">
-                ID: {doctor.doctor_id} • License: {doctor.license_number}
-              </div>
-              <div className="text-sm text-gray-600">
-                Dept: {doctor.department} • Spec: {doctor.specialization} • YOE:{" "}
-                {doctor.years_of_experience}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded text-white ${isAway ? "bg-rose-500" : "bg-emerald-500"}`}>
-                {isAway ? "Away" : "Free"}
-              </span>
-              <button
-                onClick={() => setIsAway((v) => !v)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"
-              >
-                Toggle Free/Away
-              </button>
-            </div>
+        {/* Error Banner */}
+        {error && (
+          <div
+            style={{
+              backgroundColor: "#fef2f2",
+              border: "1px solid #fca5a5",
+              padding: "12px 16px",
+              borderRadius: "8px",
+              marginBottom: "1.5rem",
+              color: "#991b1b",
+            }}
+          >
+            {error}
           </div>
+        )}
+
+        {/* Doctor Profile Card */}
+        <div
+          style={{
+            backgroundColor: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            marginBottom: "2rem",
+          }}
+        >
+          <h2 style={{ fontSize: "1.5rem", fontWeight: "600", color: "#1e293b", marginBottom: "0.75rem" }}>
+            Welcome, Dr. {doctorName}
+          </h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-6">
-          {/* Working Schedule */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Set Working Schedule</h2>
-            </div>
+        {/* Working Schedule / Availability */}
+        <div
+          style={{
+            backgroundColor: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            marginBottom: "2rem",
+          }}
+        >
+          <h2 style={{ fontSize: "1.25rem", fontWeight: "600", color: "#1e293b", marginBottom: "1rem" }}>
+            Working Schedule
+          </h2>
 
-            {/* List intervals */}
-            <table className="min-w-full table-auto mb-4">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="px-4 py-2 text-left">Day</th>
-                  <th className="px-4 py-2 text-left">Start</th>
-                  <th className="px-4 py-2 text-left">End</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
+          {/* List intervals */}
+          <table style={{ width: "100%", marginBottom: "1.5rem", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ backgroundColor: "#f1f5f9" }}>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Day</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Start</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>End</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {availabilities.map((a) => (
+                <tr key={a.availability_id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                  <td style={{ padding: "0.75rem" }}>{a.day_of_week}</td>
+                  <td style={{ padding: "0.75rem" }}>{a.start_time}</td>
+                  <td style={{ padding: "0.75rem" }}>{a.end_time}</td>
+                  <td style={{ padding: "0.75rem" }}>
+                    <button
+                      onClick={() => removeInterval(a.availability_id)}
+                      style={{
+                        backgroundColor: "#ef4444",
+                        color: "white",
+                        padding: "0.5rem 1rem",
+                        borderRadius: "6px",
+                        border: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {availabilities.map((a) => (
-                  <tr key={a.id} className="border-b">
-                    <td className="px-4 py-2">{a.day_of_week}</td>
-                    <td className="px-4 py-2">{a.start_time}</td>
-                    <td className="px-4 py-2">{a.end_time}</td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={() => removeInterval(a.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {availabilities.length === 0 && (
-                  <tr>
-                    <td className="px-4 py-2 text-sm text-gray-500" colSpan={4}>
-                      No intervals yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+              ))}
+              {availabilities.length === 0 && (
+                <tr>
+                  <td colSpan={4} style={{ padding: "0.75rem", color: "#64748b", fontSize: "0.875rem" }}>
+                    No availability intervals set yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
 
-            {/* Add interval */}
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
-                <label className="block text-sm text-gray-600">Day</label>
-                <select
-                  value={newAvail.day_of_week}
-                  onChange={(e) => setNewAvail((v) => ({ ...v, day_of_week: e.target.value }))}
-                  className="border rounded px-3 py-2"
-                >
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600">Start</label>
-                <input
-                  type="time"
-                  value={newAvail.start_time}
-                  onChange={(e) => setNewAvail((v) => ({ ...v, start_time: e.target.value }))}
-                  className="border rounded px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600">End</label>
-                <input
-                  type="time"
-                  value={newAvail.end_time}
-                  onChange={(e) => setNewAvail((v) => ({ ...v, end_time: e.target.value }))}
-                  className="border rounded px-3 py-2"
-                />
-              </div>
-              <button onClick={addInterval} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                + Add Interval
-              </button>
+          {/* Add interval */}
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "0.875rem", color: "#475569", marginBottom: "0.25rem" }}>
+                Day
+              </label>
+              <select
+                value={newAvail.day_of_week}
+                onChange={(e) => setNewAvail((v) => ({ ...v, day_of_week: e.target.value }))}
+                style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "0.5rem 0.75rem" }}
+              >
+                {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
             </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.875rem", color: "#475569", marginBottom: "0.25rem" }}>
+                Start Time
+              </label>
+              <input
+                type="time"
+                value={newAvail.start_time}
+                onChange={(e) => setNewAvail((v) => ({ ...v, start_time: e.target.value }))}
+                style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "0.5rem 0.75rem" }}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "0.875rem", color: "#475569", marginBottom: "0.25rem" }}>
+                End Time
+              </label>
+              <input
+                type="time"
+                value={newAvail.end_time}
+                onChange={(e) => setNewAvail((v) => ({ ...v, end_time: e.target.value }))}
+                style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "0.5rem 0.75rem" }}
+              />
+            </div>
+            <button
+              onClick={addInterval}
+              style={{
+                backgroundColor: "#3b82f6",
+                color: "white",
+                padding: "0.5rem 1rem",
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              + Add Interval
+            </button>
           </div>
         </div>
 
         {/* Appointments */}
-        <div className="bg-white shadow rounded-lg p-6 mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Manage Appointments</h2>
-            <span className="text-sm text-gray-500">
-              Total: {appointments.length} • Scheduled:{" "}
-              {appointments.filter((a) => a.status === "Scheduled").length}
-            </span>
-          </div>
+        <div
+          style={{
+            backgroundColor: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            marginBottom: "2rem",
+          }}
+        >
+          <h2 style={{ fontSize: "1.25rem", fontWeight: "600", color: "#1e293b", marginBottom: "1rem" }}>
+            Manage Appointments
+          </h2>
 
-          <table className="min-w-full table-auto">
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr className="bg-gray-100">
-                <th className="px-4 py-2 text-left">Date</th>
-                <th className="px-4 py-2 text-left">Time</th>
-                <th className="px-4 py-2 text-left">Patient</th>
-                <th className="px-4 py-2 text-left">Reason</th>
-                <th className="px-4 py-2 text-left">Status</th>
-                <th className="px-4 py-2 text-left">Actions</th>
+              <tr style={{ backgroundColor: "#f1f5f9" }}>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Date</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Time</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Patient</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Phone</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Reason</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Status</th>
+                <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {appointments.map((a) => (
-                <tr key={a.appointment_id} className="border-b">
-                  <td className="px-4 py-2">{a.appointment_date}</td>
-                  <td className="px-4 py-2">{a.appointment_time}</td>
-                  <td className="px-4 py-2">{a.patient}</td>
-                  <td className="px-4 py-2">{a.reason_for_visit}</td>
-                  <td className="px-4 py-2">
-                    <select
-                      className="border rounded px-2 py-1"
-                      value={a.status}
-                      onChange={(e) => updateApptStatus(a.appointment_id, e.target.value)}
+                <tr key={a.appointment_id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                  <td style={{ padding: "0.75rem" }}>{a.date}</td>
+                  <td style={{ padding: "0.75rem" }}>{a.start_time} - {a.end_time}</td>
+                  <td style={{ padding: "0.75rem" }}>{a.patient_name}</td>
+                  <td style={{ padding: "0.75rem" }}>{a.phone_number}</td>
+                  <td style={{ padding: "0.75rem" }}>{a.reason_for_visit}</td>
+                  <td style={{ padding: "0.75rem" }}>
+                    <span
+                      style={{
+                        backgroundColor: a.status === "Completed" ? "#10b981" : a.status === "Cancelled" ? "#ef4444" : "#f59e0b",
+                        color: "white",
+                        padding: "0.25rem 0.75rem",
+                        borderRadius: "9999px",
+                        fontSize: "0.875rem",
+                      }}
                     >
-                      {["Scheduled", "Completed", "Cancelled"].map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
+                      {a.status}
+                    </span>
                   </td>
-                  <td className="px-4 py-2">
-                    <button
-                      onClick={() => notify(a)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded"
-                    >
-                      Notify Patient & Admin
-                    </button>
+                  <td style={{ padding: "0.75rem" }}>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      {a.status !== "Completed" && a.status !== "Cancelled" && (
+                        <>
+                          <button
+                            onClick={() => updateApptStatus(a.appointment_id, "Completed")}
+                            style={{
+                              backgroundColor: "#10b981",
+                              color: "white",
+                              padding: "0.25rem 0.75rem",
+                              borderRadius: "6px",
+                              border: "none",
+                              cursor: "pointer",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            Complete
+                          </button>
+                          <button
+                            onClick={() => updateApptStatus(a.appointment_id, "Cancelled")}
+                            style={{
+                              backgroundColor: "#ef4444",
+                              color: "white",
+                              padding: "0.25rem 0.75rem",
+                              borderRadius: "6px",
+                              border: "none",
+                              cursor: "pointer",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
               {appointments.length === 0 && (
                 <tr>
-                  <td className="px-4 py-2 text-sm text-gray-500" colSpan={6}>
-                    No appointments.
+                  <td colSpan={7} style={{ padding: "0.75rem", color: "#64748b", fontSize: "0.875rem" }}>
+                    No appointments found.
                   </td>
                 </tr>
               )}
@@ -330,80 +398,108 @@ const DoctorDashboard = () => {
           </table>
         </div>
 
-        {/* Patient Records */}
-        <div className="bg-white shadow rounded-lg p-6 mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Manage Patient Records</h2>
-          </div>
+        {/* Medical Report Modal */}
+        {reportModal.open && (
+          <div
+            style={{
+              position: "fixed",
+              inset: "0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 50,
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: "white",
+                borderRadius: "12px",
+                padding: "24px",
+                width: "90%",
+                maxWidth: "600px",
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+              }}
+            >
+              <h3 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "1rem", color: "#1e293b" }}>
+                Medical Report
+              </h3>
+              <p style={{ fontSize: "0.875rem", color: "#64748b", marginBottom: "1.5rem" }}>
+                Complete the medical report to mark the appointment as completed.
+              </p>
 
-          <table className="min-w-full table-auto">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="px-4 py-2 text-left">Report ID</th>
-                <th className="px-4 py-2 text-left">Patient</th>
-                <th className="px-4 py-2 text-left">Diagnosis</th>
-                <th className="px-4 py-2 text-left">Treatment Plan</th>
-                <th className="px-4 py-2 text-left">Last Update</th>
-                <th className="px-4 py-2 text-left">Notes</th>
-                <th className="px-4 py-2 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {records.map((r) => (
-                <tr key={r.report_id} className="border-b">
-                  <td className="px-4 py-2">{r.report_id}</td>
-                  <td className="px-4 py-2">{r.patient}</td>
-                  <td className="px-4 py-2">{r.diagnosis}</td>
-                  <td className="px-4 py-2">{r.treatment_plan}</td>
-                  <td className="px-4 py-2">{r.last_update}</td>
-                  <td className="px-4 py-2">{r.notes.length} log(s)</td>
-                  <td className="px-4 py-2">
-                    <button
-                      onClick={() => openNoteModal(r.report_id)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-                    >
-                      Log Change
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              <div style={{ marginBottom: "1rem" }}>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#475569", marginBottom: "0.5rem" }}>
+                  Diagnosis *
+                </label>
+                <textarea
+                  rows={4}
+                  value={reportModal.diagnosis}
+                  onChange={(e) => setReportModal((v) => ({ ...v, diagnosis: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "6px",
+                    padding: "0.75rem",
+                    fontSize: "0.875rem",
+                  }}
+                  placeholder="Enter diagnosis..."
+                />
+              </div>
 
-          {/* Simple notes viewer */}
-          <div className="text-sm text-gray-600 mt-3">
-            <span className="font-medium">Tip:</span> Use <em>Log Change</em> to append notes;
-            latest log updates the record’s last_update.
-          </div>
-        </div>
-      </div>
+              <div style={{ marginBottom: "1.5rem" }}>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#475569", marginBottom: "0.5rem" }}>
+                  Treatment Plan *
+                </label>
+                <textarea
+                  rows={4}
+                  value={reportModal.treatment_plan}
+                  onChange={(e) => setReportModal((v) => ({ ...v, treatment_plan: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "6px",
+                    padding: "0.75rem",
+                    fontSize: "0.875rem",
+                  }}
+                  placeholder="Enter treatment plan..."
+                />
+              </div>
 
-      {/* Log Change Modal */}
-      {noteModal.open && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
-            <h3 className="text-lg font-semibold mb-3">Log Change</h3>
-            <textarea
-              rows={4}
-              value={noteModal.text}
-              onChange={(e) => setNoteModal((v) => ({ ...v, text: e.target.value }))}
-              className="w-full border rounded p-2"
-              placeholder="Describe the change..."
-            />
-            <div className="flex justify-end gap-2 mt-3">
-              <button
-                onClick={() => setNoteModal({ open: false, report_id: null, text: "" })}
-                className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
-              >
-                Cancel
-              </button>
-              <button onClick={saveNote} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                Save
-              </button>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
+                <button
+                  onClick={() =>
+                    setReportModal({ open: false, appointment_id: null, diagnosis: "", treatment_plan: "" })
+                  }
+                  style={{
+                    backgroundColor: "#94a3b8",
+                    color: "white",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "6px",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveReport}
+                  style={{
+                    backgroundColor: "#3b82f6",
+                    color: "white",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "6px",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Save & Complete
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

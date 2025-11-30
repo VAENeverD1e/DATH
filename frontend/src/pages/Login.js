@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiPost, setAuth } from "../api/client";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -29,12 +30,6 @@ const Login = () => {
   // Remember me checkbox
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Dummy users for front-end testing
-  const DUMMY_USERS = [
-    { email: "you@example.com", password: "Password123" },
-    { email: "doctor@example.com", password: "DocPass789" },
-  ];
-
   // Validate inputs
   const validate = () => {
     let valid = true;
@@ -51,20 +46,6 @@ const Login = () => {
       valid = false;
     }
     return valid;
-  };
-
-  // Simulate login (replace with real API)
-  const fakeLogin = (emailInput, passwordInput) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const user = DUMMY_USERS.find(
-          (u) =>
-            u.email.toLowerCase() === emailInput.toLowerCase() &&
-            u.password === passwordInput
-        );
-        resolve(!!user);
-      }, 1000); // Simulate 1 second delay
-    });
   };
 
   // Handle lockout countdown
@@ -95,53 +76,47 @@ const Login = () => {
     setGeneralError("");
 
     try {
-      const success = await fakeLogin(email, password);
+      // Call real backend login API
+      const response = await apiPost('/api/auth/login', {
+        email: email,
+        password: password,
+      });
 
-      if (success) {
-        // successful login
-        // Create a minimal user object for the app and persist it so NavBar can read it
-        const userObj = {
-          name: email.toLowerCase() === 'doctor@example.com' ? 'Dr. Example' : 'User Example',
-          avatarUrl: '',
-          role: email.toLowerCase() === 'doctor@example.com' ? 'doctor' : 'user',
-        };
-        try {
-          // Persist to localStorage when "Remember me" is checked, otherwise use sessionStorage
-          if (rememberMe) {
-            localStorage.setItem('user', JSON.stringify(userObj));
-          } else {
-            sessionStorage.setItem('user', JSON.stringify(userObj));
-          }
-        } catch (e) {
-          // ignore storage errors
-        }
+      // Save auth and user to storage
+      setAuth(
+        {
+          token: response.token,
+          user: response.user,
+        },
+        rememberMe // Use localStorage if "Remember me" is checked
+      );
 
-        setTimeout(() => {
-          setLoading(false);
-          navigate('/home', { replace: true });
-        }, 800); // brief delay to simulate redirect
-      } else {
-        // failed login attempt
+      setTimeout(() => {
         setLoading(false);
-        setFailedAttempts((prev) => {
-          const newCount = prev + 1;
-          if (newCount >= LOCKOUT_LIMIT) {
-            setLockout(true);
-            setGeneralError("Too many failed attempts. Please try again later.");
-          } else {
-            setGeneralError(
-              `Invalid email or password. Attempts remaining: ${
-                LOCKOUT_LIMIT - newCount
-              }`
-            );
-          }
-          return newCount;
-        });
-      }
+        // Redirect based on user role
+        if (response.user.role === 'admin') {
+          navigate('/admin', { replace: true });
+        } else if (response.user.role === 'doctor') {
+          navigate('/doctor', { replace: true });
+        } else {
+          // patient or default → go to homepage
+          navigate('/home', { replace: true });
+        }
+      }, 800);
     } catch (err) {
-      console.error("Mock login error:", err);
-      setGeneralError("Unexpected error. Try again later.");
       setLoading(false);
+      setFailedAttempts((prev) => {
+        const newCount = prev + 1;
+        if (newCount >= LOCKOUT_LIMIT) {
+          setLockout(true);
+          setGeneralError("Too many failed attempts. Please try again later.");
+        } else {
+          setGeneralError(
+            err.message || `Invalid email or password. Attempts remaining: ${LOCKOUT_LIMIT - newCount}`
+          );
+        }
+        return newCount;
+      });
     }
   };
 
@@ -284,11 +259,6 @@ const Login = () => {
             </label>
           </div>
 
-          <p className="text-sm text-center text-gray-500 mt-8">
-            Dummy Users: <br />
-            - Email: <strong>you@example.com</strong>, Password: <strong>Password123</strong> <br />
-            - Email: <strong>doctor@example.com</strong>, Password: <strong>DocPass789</strong>
-          </p>
           <button
             type="submit"
             className={`w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition ${

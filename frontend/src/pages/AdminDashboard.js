@@ -1,96 +1,101 @@
-import React, { useState } from "react";
-import { Bar, Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
+import React, { useState, useEffect } from "react";
 import NavBar from "../components/NavBar";
+import { apiGet, apiPost, apiDelete } from "../api/client";
 
 const backgroundImage = process.env.PUBLIC_URL + "/assets/artistic-blurry-colorful-wallpaper-background.jpg";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
-
-const stats = [
-  { label: "Visits", value: 1200 },
-  { label: "Registrations", value: 350 },
-  { label: "Appointments", value: 75 },
-];
-
-const appointments = [
-  { date: "2025-10-18", time: "09:00", durations: "60 mins", doctor: "Dr. Chấn Hưng", patient: "Thanh Huy" },
-  { date: "2025-10-18", time: "10:30", durations: "45 mins", doctor: "Dr. Chấn Hưng", patient: "Quang Huy" },
-  { date: "2025-10-18", time: "11:15", durations: "35 mins", doctor: "Dr. Chấn Hưng", patient: "Mạnh Hưng" },
-];
-
-const chartData = {
-  labels: ["Visits", "Registrations", "Appointments"],
-  datasets: [
-    {
-      label: "Count",
-      data: stats.map((s) => s.value),
-      backgroundColor: ["#60a5fa", "#34d399", "#fbbf24"],
-    },
-  ],
-};
-
-const chartOptions = {
-  responsive: true,
-  plugins: {
-    legend: { display: false },
-    title: { display: true, text: "Statistics Overview" },
-  },
-  maintainAspectRatio: false,
-};
-
-const visitTypeData = {
-  labels: ["Staff", "Patient", "Doctor"],
-  datasets: [
-    {
-      label: "Visit Type",
-      data: [300, 700, 200],
-      backgroundColor: ["#6366f1", "#34d399", "#f59e42"],
-      borderWidth: 1,
-    },
-  ],
-};
-
-const pieOptions = {
-  responsive: true,
-  plugins: {
-    legend: { position: "bottom" },
-    title: { display: true, text: "Visit Type Percentage" },
-  },
-  maintainAspectRatio: false,
-};
+// Removed chart and appointments dummy data; focusing on doctor management only.
 
 const AdminDashboard = () => {
-  const [doctors, setDoctors] = useState([
-    { id: "D001", name: "Dr. Hưng", license: "LIC12345", specialization: "Cardiology" },
-    { id: "D002", name: "Dr. Mai", license: "LIC23456", specialization: "Neurology" },
-  ]);
+  const [doctors, setDoctors] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState(null);
+  const [loadingAppointments, setLoadingAppointments] = useState(false);
+  // Removed stats state (database has no stats aggregate table yet)
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [showModal, setShowModal] = useState(false);
   const [newDoctor, setNewDoctor] = useState({
-    id: "",
-    name: "",
-    license: "",
+    username: "",
+    email: "",
+    password: "",
+    phone_number: "",
     specialization: "",
+    license_number: "",
+    years_of_experience: "",
+    department_id: ""
   });
 
-  const handleAddDoctor = () => {
-    setDoctors([...doctors, newDoctor]);
-    setNewDoctor({ id: "", name: "", license: "", specialization: "" });
-    setShowModal(false);
+  // Fetch doctors & departments & stats
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const [doctorData, deptData] = await Promise.all([
+          apiGet('/api/admin/doctors', { auth: true }),
+          apiGet('/api/departments')
+        ]);
+        setDoctors(doctorData);
+        setDepartments(deptData);
+      } catch (err) {
+        setError(err.message || 'Failed to load admin data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const handleAddDoctor = async () => {
+    try {
+      setError("");
+      const body = {
+        username: newDoctor.username,
+        email: newDoctor.email || null,
+        password: newDoctor.password,
+        phone_number: newDoctor.phone_number || null,
+        specialization: newDoctor.specialization || null,
+        license_number: newDoctor.license_number,
+        years_of_experience: newDoctor.years_of_experience ? parseInt(newDoctor.years_of_experience, 10) : null,
+        department_id: parseInt(newDoctor.department_id, 10)
+      };
+      const created = await apiPost('/api/admin/doctors', body, { auth: true });
+      setDoctors(prev => [...prev, {
+        doctor_id: created.doctor_id,
+        username: created.username,
+        email: created.email,
+        phone_number: created.phone_number,
+        specialization: created.specialization,
+        license_number: created.license_number,
+        years_of_experience: created.years_of_experience,
+        department_id: created.department_id
+      }]);
+      setShowModal(false);
+      setNewDoctor({
+        username: "",
+        email: "",
+        password: "",
+        phone_number: "",
+        specialization: "",
+        license_number: "",
+        years_of_experience: "",
+        department_id: ""
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to create doctor');
+    }
   };
 
-  const handleRemoveDoctor = (id) => {
-    setDoctors(doctors.filter((doc) => doc.id !== id));
+  const handleRemoveDoctor = async (doctor_id) => {
+    try {
+      setError("");
+      await apiDelete(`/api/admin/doctors/${doctor_id}`, { auth: true });
+      setDoctors(prev => prev.filter(d => d.doctor_id !== doctor_id));
+    } catch (err) {
+      setError(err.message || 'Failed to remove doctor');
+    }
   };
 
   return (
@@ -127,67 +132,87 @@ const AdminDashboard = () => {
           </span>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {stats.map((stat, idx) => {
-            const boxColors = [
-              "bg-blue-500 text-white",
-              "bg-green-500 text-white",
-              "bg-yellow-400 text-gray-900",
-            ];
-            return (
-              <div
-                key={stat.label}
-                className={`shadow rounded-lg p-6 flex flex-col items-center ${boxColors[idx]}`}
-              >
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="mt-2 font-semibold">{stat.label}</div>
-              </div>
-            );
-          })}
-        </div>
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded">
+            <span className="text-sm text-red-700">{error}</span>
+          </div>
+        )}
 
-        {/* Appointments Table */}
+        {/* Removed appointments and charts sections */}
+
+        {/* Doctor Appointments (selected) */}
         <div className="bg-white shadow rounded-lg p-6 mt-8">
-          <h2 className="text-lg font-semibold mb-4">Today's Appointments</h2>
-          <table className="min-w-full table-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Doctor Appointments</h2>
+            <div className="flex items-center gap-2">
+              <select
+                className="border rounded px-2 py-1 text-sm"
+                value={selectedDoctorId || ''}
+                onChange={async (e) => {
+                  const id = e.target.value || null;
+                  setSelectedDoctorId(id);
+                  setAppointments([]);
+                  if (!id) return;
+                  setLoadingAppointments(true);
+                  try {
+                    const appts = await apiGet(`/api/admin/doctors/${id}/appointments`, { auth: true });
+                    setAppointments(appts);
+                  } catch (err) {
+                    setError(err.message || 'Failed to load doctor appointments');
+                  } finally {
+                    setLoadingAppointments(false);
+                  }
+                }}
+              >
+                <option value="">Select Doctor</option>
+                {doctors.map(d => (
+                  <option key={d.doctor_id} value={d.doctor_id}>{d.username} (#{d.doctor_id})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <table className="min-w-full table-auto text-sm">
             <thead>
               <tr className="bg-gray-100">
-                <th className="px-4 py-2 text-left">Date</th>
-                <th className="px-4 py-2 text-left">Time</th>
-                <th className="px-4 py-2 text-left">Duration</th>
-                <th className="px-4 py-2 text-left">Doctor</th>
-                <th className="px-4 py-2 text-left">Patient</th>
+                <th className="px-3 py-2 text-left">Appt ID</th>
+                <th className="px-3 py-2 text-left">Patient</th>
+                <th className="px-3 py-2 text-left">Phone</th>
+                <th className="px-3 py-2 text-left">Date</th>
+                <th className="px-3 py-2 text-left">Start</th>
+                <th className="px-3 py-2 text-left">End</th>
+                <th className="px-3 py-2 text-left">Status</th>
               </tr>
             </thead>
             <tbody>
-              {appointments.map((appt, idx) => (
-                <tr key={idx} className="border-b">
-                  <td className="px-4 py-2">{appt.date}</td>
-                  <td className="px-4 py-2">{appt.time}</td>
-                  <td className="px-4 py-2">{appt.durations}</td>
-                  <td className="px-4 py-2">{appt.doctor}</td>
-                  <td className="px-4 py-2">{appt.patient}</td>
+              {selectedDoctorId && appointments.map(a => (
+                <tr key={a.appointment_id} className="border-b">
+                  <td className="px-3 py-2">{a.appointment_id}</td>
+                  <td className="px-3 py-2">{a.patient_name || '—'}</td>
+                  <td className="px-3 py-2">{a.patient_phone || '—'}</td>
+                  <td className="px-3 py-2">{a.date || '—'}</td>
+                  <td className="px-3 py-2">{a.start_time || '—'}</td>
+                  <td className="px-3 py-2">{a.end_time || '—'}</td>
+                  <td className="px-3 py-2">{a.status}</td>
                 </tr>
               ))}
+              {selectedDoctorId && !loadingAppointments && !appointments.length && (
+                <tr>
+                  <td colSpan={7} className="px-3 py-4 text-center text-gray-500">No appointments for this doctor.</td>
+                </tr>
+              )}
+              {!selectedDoctorId && (
+                <tr>
+                  <td colSpan={7} className="px-3 py-4 text-center text-gray-500">Select a doctor to view appointments.</td>
+                </tr>
+              )}
+              {loadingAppointments && (
+                <tr>
+                  <td colSpan={7} className="px-3 py-4 text-center text-gray-500">Loading...</td>
+                </tr>
+              )}
             </tbody>
           </table>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <div className="bg-white shadow rounded-lg p-6 flex flex-col items-center" style={{ height: 300 }}>
-            <h2 className="text-lg font-semibold mb-4">Statistics Chart</h2>
-            <div style={{ width: "100%", height: 200 }}>
-              <Bar data={chartData} options={chartOptions} />
-            </div>
-          </div>
-          <div className="bg-white shadow rounded-lg p-6 flex flex-col items-center" style={{ height: 300 }}>
-            <h2 className="text-lg font-semibold mb-4">Visit Percentage</h2>
-            <div style={{ width: "100%", height: 200 }}>
-              <Pie data={visitTypeData} options={pieOptions} />
-            </div>
-          </div>
         </div>
 
         {/* Doctors Table */}
@@ -205,23 +230,29 @@ const AdminDashboard = () => {
           <table className="min-w-full table-auto">
             <thead>
               <tr className="bg-gray-100">
-                <th className="px-4 py-2 text-left">ID</th>
-                <th className="px-4 py-2 text-left">Doctor Name</th>
-                <th className="px-4 py-2 text-left">License Number</th>
+                <th className="px-4 py-2 text-left">Doctor ID</th>
+                <th className="px-4 py-2 text-left">Username</th>
+                <th className="px-4 py-2 text-left">Email</th>
+                <th className="px-4 py-2 text-left">License</th>
                 <th className="px-4 py-2 text-left">Specialization</th>
+                <th className="px-4 py-2 text-left">Years</th>
+                <th className="px-4 py-2 text-left">Department</th>
                 <th className="px-4 py-2 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
               {doctors.map((doc) => (
-                <tr key={doc.id} className="border-b">
-                  <td className="px-4 py-2">{doc.id}</td>
-                  <td className="px-4 py-2">{doc.name}</td>
-                  <td className="px-4 py-2">{doc.license}</td>
-                  <td className="px-4 py-2">{doc.specialization}</td>
+                <tr key={doc.doctor_id} className="border-b">
+                  <td className="px-4 py-2">{doc.doctor_id}</td>
+                  <td className="px-4 py-2">{doc.username}</td>
+                  <td className="px-4 py-2">{doc.email || '—'}</td>
+                  <td className="px-4 py-2">{doc.license_number}</td>
+                  <td className="px-4 py-2">{doc.specialization || '—'}</td>
+                  <td className="px-4 py-2">{doc.years_of_experience ?? '—'}</td>
+                  <td className="px-4 py-2">{doc.department_name || doc.department_id || '—'}</td>
                   <td className="px-4 py-2">
                     <button
-                      onClick={() => handleRemoveDoctor(doc.id)}
+                      onClick={() => handleRemoveDoctor(doc.doctor_id)}
                       className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
                     >
                       Remove
@@ -238,35 +269,65 @@ const AdminDashboard = () => {
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
               <h2 className="text-lg font-semibold mb-4">Add New Doctor</h2>
-
               <input
                 type="text"
-                placeholder="Doctor ID"
-                value={newDoctor.id}
-                onChange={(e) => setNewDoctor({ ...newDoctor, id: e.target.value })}
+                placeholder="Username"
+                value={newDoctor.username}
+                onChange={(e) => setNewDoctor({ ...newDoctor, username: e.target.value })}
+                className="w-full border p-2 mb-2 rounded"
+              />
+              <input
+                type="email"
+                placeholder="Email (optional)"
+                value={newDoctor.email}
+                onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
+                className="w-full border p-2 mb-2 rounded"
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={newDoctor.password}
+                onChange={(e) => setNewDoctor({ ...newDoctor, password: e.target.value })}
                 className="w-full border p-2 mb-2 rounded"
               />
               <input
                 type="text"
-                placeholder="Doctor Name"
-                value={newDoctor.name}
-                onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
+                placeholder="Phone (optional)"
+                value={newDoctor.phone_number}
+                onChange={(e) => setNewDoctor({ ...newDoctor, phone_number: e.target.value })}
+                className="w-full border p-2 mb-2 rounded"
+              />
+              <input
+                type="text"
+                placeholder="Specialization (optional)"
+                value={newDoctor.specialization}
+                onChange={(e) => setNewDoctor({ ...newDoctor, specialization: e.target.value })}
                 className="w-full border p-2 mb-2 rounded"
               />
               <input
                 type="text"
                 placeholder="License Number"
-                value={newDoctor.license}
-                onChange={(e) => setNewDoctor({ ...newDoctor, license: e.target.value })}
+                value={newDoctor.license_number}
+                onChange={(e) => setNewDoctor({ ...newDoctor, license_number: e.target.value })}
                 className="w-full border p-2 mb-2 rounded"
               />
               <input
-                type="text"
-                placeholder="Specialization"
-                value={newDoctor.specialization}
-                onChange={(e) => setNewDoctor({ ...newDoctor, specialization: e.target.value })}
-                className="w-full border p-2 mb-4 rounded"
+                type="number"
+                placeholder="Years of Experience (optional)"
+                value={newDoctor.years_of_experience}
+                onChange={(e) => setNewDoctor({ ...newDoctor, years_of_experience: e.target.value })}
+                className="w-full border p-2 mb-2 rounded"
               />
+              <select
+                value={newDoctor.department_id}
+                onChange={(e) => setNewDoctor({ ...newDoctor, department_id: e.target.value })}
+                className="w-full border p-2 mb-4 rounded"
+              >
+                <option value="">Select Department</option>
+                {departments.map(d => (
+                  <option key={d.department_id} value={d.department_id}>{d.name}</option>
+                ))}
+              </select>
 
               <div className="flex justify-end gap-2">
                 <button

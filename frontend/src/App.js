@@ -10,7 +10,6 @@ import AdminLogin from "./pages/AdminLogin";
 import ServicePage from "./pages/Service";
 import { UserDashboard } from "./pages/UserDashboard";
 import { AppointmentDashboard } from "./pages/AppointmentDashboard";
-import APIPlayGround from "./pages/APIPlayGround";
 
 export default function App() {
   return (
@@ -74,7 +73,6 @@ export default function App() {
             </Layout>
           }
         />
-        <Route path="/api-playground" element={<Layout><APIPlayGround /></Layout>} />
       </Routes>
 
       <FloatingMenu />

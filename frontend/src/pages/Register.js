@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiPost, setAuth } from "../api/client";
 
 const Register = () => {
 
@@ -11,6 +12,12 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    phone_number: "",
+    date_of_birth: "",
+    address: "",
+    gender: "",
+    insurance_provider: "",
+    insurance_number: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -19,9 +26,6 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [formError, setFormError] = useState("");
-
-  // Simulate existing users for demo — replace later with database call
-  const existingEmails = ["you@example.com"];
 
   // Handle input changes and clear specific field errors
   const handleChange = (e) => {
@@ -36,8 +40,6 @@ const Register = () => {
 
   // Email validation: basic format check
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  // normalize existingEmails once (near declaration)
-  const existingEmailsLower = existingEmails.map((e) => e.toLowerCase());
 
   // Password validation: at least 8 chars, one letter, one number
   const validatePassword = (password) => {
@@ -52,15 +54,94 @@ const Register = () => {
     }
     return ""; // no errors
   };
-  const handleSubmit = (e) => {
+
+  // Phone validation
+  const validatePhone = (phone) => {
+    if (!phone || !phone.trim()) {
+      return "Phone number is required.";
+    }
+    if (!/^[\d+\-\s()]+$/.test(phone.trim())) {
+      return "Phone number must contain only digits, +, -, and spaces.";
+    }
+    const digits = phone.trim().replace(/[\s\-()]/g, '');
+    if (digits.length < 7 || digits.length > 20) {
+      return "Phone number must be 7-20 digits.";
+    }
+    return "";
+  };
+
+  // Date of birth validation
+  const validateDOB = (dob) => {
+    if (!dob || !dob.trim()) {
+      return "Date of birth is required.";
+    }
+    const date = new Date(dob);
+    const today = new Date();
+    if (isNaN(date.getTime())) {
+      return "Invalid date format.";
+    }
+    if (date > today) {
+      return "Date of birth cannot be in the future.";
+    }
+    const age = today.getFullYear() - date.getFullYear();
+    const monthDiff = today.getMonth() - date.getMonth();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate()) ? age - 1 : age;
+    if (actualAge < 13) {
+      return "You must be at least 13 years old.";
+    }
+    return "";
+  };
+
+  // Address validation
+  const validateAddress = (address) => {
+    if (!address || !address.trim()) {
+      return "Address is required.";
+    }
+    if (address.trim().length < 5) {
+      return "Address must be at least 5 characters.";
+    }
+    if (address.trim().length > 200) {
+      return "Address must not exceed 200 characters.";
+    }
+    return "";
+  };
+
+  // Insurance provider validation
+  const validateInsuranceProvider = (provider) => {
+    if (!provider || !provider.trim()) {
+      return "Insurance provider is required.";
+    }
+    if (provider.trim().length < 2) {
+      return "Insurance provider must be at least 2 characters.";
+    }
+    if (provider.trim().length > 100) {
+      return "Insurance provider must not exceed 100 characters.";
+    }
+    return "";
+  };
+
+  // Insurance number validation
+  const validateInsuranceNumber = (number) => {
+    if (!number || !number.trim()) {
+      return "Insurance number is required.";
+    }
+    if (!/^[A-Za-z0-9-]{4,50}$/.test(number.trim())) {
+      return "Insurance number must be 4-50 characters (letters, numbers, and hyphens only).";
+    }
+    return "";
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault(); 
     const newErrors = {};
     setFormError(""); // clear previous general error
 
     // Check for empty required fields
-    if (!form.firstName || !form.lastName || !form.email || !form.password || !form.confirmPassword) {
-    setFormError("Please fill in all required fields.");
-    return;
+    if (!form.firstName || !form.lastName || !form.email || !form.password || !form.confirmPassword ||
+        !form.phone_number || !form.date_of_birth || !form.address || !form.gender ||
+        !form.insurance_provider || !form.insurance_number) {
+      setFormError("Please fill in all required fields.");
+      return;
     }
 
     // Name validations
@@ -74,8 +155,6 @@ const Register = () => {
     // Email validations
     if (!isValidEmail(form.email)) {
       newErrors.email = "Invalid email format.";
-    } else if (existingEmailsLower.includes(form.email.trim().toLowerCase())) {
-    newErrors.email = "This email is already in use.";
     }
 
     // Password validations
@@ -87,22 +166,88 @@ const Register = () => {
       newErrors.confirmPassword = "Passwords do not match.";
     }
 
+    // Phone validation
+    const phoneError = validatePhone(form.phone_number);
+    if (phoneError) {
+      newErrors.phone_number = phoneError;
+    }
+
+    // DOB validation
+    const dobError = validateDOB(form.date_of_birth);
+    if (dobError) {
+      newErrors.date_of_birth = dobError;
+    }
+
+    // Address validation
+    const addressError = validateAddress(form.address);
+    if (addressError) {
+      newErrors.address = addressError;
+    }
+
+    // Gender validation
+    if (!form.gender || !['Male', 'Female', 'Other'].includes(form.gender)) {
+      newErrors.gender = "Please select a valid gender.";
+    }
+
+    // Insurance provider validation
+    const insuranceProviderError = validateInsuranceProvider(form.insurance_provider);
+    if (insuranceProviderError) {
+      newErrors.insurance_provider = insuranceProviderError;
+    }
+
+    // Insurance number validation
+    const insuranceNumberError = validateInsuranceNumber(form.insurance_number);
+    if (insuranceNumberError) {
+      newErrors.insurance_number = insuranceNumberError;
+    }
+
     setErrors(newErrors);
 
     // Only proceed if no errors
     if (Object.keys(newErrors).length === 0) {
-        // Handle registration logic here
-        console.log("Registration successful:", form);
-        // All passed → simulate registration
-        setLoading(true);
-        setSuccessMsg("");
+      setLoading(true);
+      setSuccessMsg("");
+
+      try {
+        // Generate username from first + last name (lowercase)
+        const username = `${form.firstName.toLowerCase()}${form.lastName.toLowerCase()}`;
+
+        // Call real backend register API with all required fields
+        const response = await apiPost('/api/auth/register', {
+          username: username,
+          email: form.email,
+          password: form.password,
+          phone_number: form.phone_number,
+          date_of_birth: form.date_of_birth,
+          address: form.address,
+          gender: form.gender,
+          insurance_provider: form.insurance_provider,
+          insurance_number: form.insurance_number,
+        });
+
+        // Save auth and user to storage
+        setAuth({
+          token: response.token,
+          user: response.user,
+        }, false); // Don't use "Remember me" for new registrations by default
+
+        setLoading(false);
+        setSuccessMsg("Registration successful!");
+        
         setTimeout(() => {
-            setLoading(false);
-            setSuccessMsg("Registration successful!");
-            setTimeout(() => navigate("/"), 900);
-        }, 1400);
-    }  
-};
+          // Redirect to user dashboard
+          navigate('/user-dashboard', { replace: true });
+        }, 900);
+      } catch (err) {
+        setLoading(false);
+        // Handle field-specific errors from backend
+        if (err.fields) {
+          setErrors(err.fields);
+        }
+        setFormError(err.message || err.error || "Registration failed. Please try again.");
+      }
+    }
+  };
 
   return (
     <div
@@ -122,7 +267,7 @@ const Register = () => {
 
       <div
         className="w-full max-w-lg bg-white p-8 rounded-lg shadow relative z-10"
-        style={{ minHeight: "600px" }}
+        style={{ minHeight: "800px" }}
       >
         <h2
           className="text-2xl font-bold mb-8 text-center"
@@ -269,6 +414,128 @@ const Register = () => {
               <p className="text-xs text-red-500 mt-1">
                 {errors.confirmPassword}
               </p>
+            )}
+          </div>
+
+          {/* Phone Number */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              name="phone_number"
+              placeholder="+1 (555) 000-0000"
+              value={form.phone_number}
+              onChange={handleChange}
+              className={`mt-1 block w-full border rounded px-3 py-2 text-base ${
+                errors.phone_number ? "border-red-500" : "border-gray-200"
+              }`}
+            />
+            {errors.phone_number && (
+              <p className="text-xs text-red-500 mt-1">{errors.phone_number}</p>
+            )}
+          </div>
+
+          {/* Date of Birth */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Date of Birth
+            </label>
+            <input
+              type="date"
+              name="date_of_birth"
+              value={form.date_of_birth}
+              onChange={handleChange}
+              className={`mt-1 block w-full border rounded px-3 py-2 text-base ${
+                errors.date_of_birth ? "border-red-500" : "border-gray-200"
+              }`}
+            />
+            {errors.date_of_birth && (
+              <p className="text-xs text-red-500 mt-1">{errors.date_of_birth}</p>
+            )}
+          </div>
+
+          {/* Address */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Address
+            </label>
+            <input
+              type="text"
+              name="address"
+              placeholder="123 Main St, City, State, ZIP"
+              value={form.address}
+              onChange={handleChange}
+              className={`mt-1 block w-full border rounded px-3 py-2 text-base ${
+                errors.address ? "border-red-500" : "border-gray-200"
+              }`}
+            />
+            {errors.address && (
+              <p className="text-xs text-red-500 mt-1">{errors.address}</p>
+            )}
+          </div>
+
+          {/* Gender */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Gender
+            </label>
+            <select
+              name="gender"
+              value={form.gender}
+              onChange={handleChange}
+              className={`mt-1 block w-full border rounded px-3 py-2 text-base ${
+                errors.gender ? "border-red-500" : "border-gray-200"
+              }`}
+            >
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+            {errors.gender && (
+              <p className="text-xs text-red-500 mt-1">{errors.gender}</p>
+            )}
+          </div>
+
+          {/* Insurance Provider */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Insurance Provider
+            </label>
+            <input
+              type="text"
+              name="insurance_provider"
+              placeholder="Insurance Company Name"
+              value={form.insurance_provider}
+              onChange={handleChange}
+              className={`mt-1 block w-full border rounded px-3 py-2 text-base ${
+                errors.insurance_provider ? "border-red-500" : "border-gray-200"
+              }`}
+            />
+            {errors.insurance_provider && (
+              <p className="text-xs text-red-500 mt-1">{errors.insurance_provider}</p>
+            )}
+          </div>
+
+          {/* Insurance Number */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Insurance Number
+            </label>
+            <input
+              type="text"
+              name="insurance_number"
+              placeholder="ABC123-456"
+              value={form.insurance_number}
+              onChange={handleChange}
+              className={`mt-1 block w-full border rounded px-3 py-2 text-base ${
+                errors.insurance_number ? "border-red-500" : "border-gray-200"
+              }`}
+            />
+            {errors.insurance_number && (
+              <p className="text-xs text-red-500 mt-1">{errors.insurance_number}</p>
             )}
           </div>
 

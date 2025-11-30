@@ -19,16 +19,17 @@ const departmentsRoutes = require('./API/admin/departments.routes')
 app.use(cors({ origin: 'http://localhost:3000' })) // allow your frontend origin
 app.use(express.json())
 
-// Mount all routes
+// Mount all routes (order matters: more specific routes first!)
 app.use('/api/auth', authRoutes)
+app.use('/api/doctors/availability', availabilityRoutes)  // More specific route first
 app.use('/api/doctors', doctorRoutes)
-app.use('/api/doctors/availability', availabilityRoutes)
 app.use('/api/reports', reportRoutes)
 app.use('/api/slots', slotsRoutes)
 app.use('/api/appointments', appointmentsRoutes)
 app.use('/api/patient', patientRoutes)
-app.use('/api/admin/doctors', adminDoctorsRoutes)
+app.use('/api/admin', adminDoctorsRoutes)  // Fixed: was /api/admin/doctors causing /api/admin/doctors/doctors
 app.use('/api/departments', departmentsRoutes)
 
 const port = process.env.PORT || 4000
+app.get('/health', (req, res) => res.json({ status: 'ok' }))
 app.listen(port, () => console.log(`Backend API listening on ${port}`))

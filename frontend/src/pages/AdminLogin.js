@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { apiPost, setAuth } from "../api/client";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -15,12 +16,6 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [serverError, setServerError] = useState("");
-
-  // Dummy admin credentials for demo purposes
-  const DUMMY_ADMINS = [
-    { username: "admin", password: "AdminPass123" },
-    { username: "superadmin", password: "supersecret" },
-  ];
 
   // Basic validation for admin fields
   const validate = () => {
@@ -42,19 +37,7 @@ const AdminLogin = () => {
     setFieldErrors({});
   };
 
-  // Mock login: simulate network delay and check dummy data
-  const mockAuthenticate = (identifier, pwd) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const user = DUMMY_ADMINS.find(
-          (u) => u.username.toLowerCase() === identifier.toLowerCase() && u.password === pwd
-        );
-        resolve(user || null);
-      }, 600); // simulate ~600ms network latency
-    });
-  };
-
-  // Submit admin login (frontend only)
+  // Submit admin login with role validation
   const handleSubmit = async (e) => {
     e && e.preventDefault();
     setServerError("");
@@ -62,20 +45,29 @@ const AdminLogin = () => {
 
     setLoading(true);
     try {
-      const user = await mockAuthenticate(username, password);
+      // Call real backend login API
+      const response = await apiPost('/api/auth/login', {
+        username: username,
+        password: password,
+      });
 
-      if (!user) {
-        setServerError("Invalid admin username or password.");
+      // Check if user has admin role
+      if (response.user.role !== 'admin') {
+        setServerError("You do not have admin privileges.");
         setLoading(false);
         return;
       }
 
-      // If authentication succeeds, navigate to admin dashboard
+      // Save auth and user to storage
+      setAuth({
+        token: response.token,
+        user: response.user,
+      }, false);
+
+      // Navigate to admin dashboard
       navigate("/admin", { replace: true });
     } catch (err) {
-      console.error("Mock login error:", err);
-      setServerError("Unexpected error. Try again.");
-    } finally {
+      setServerError(err.message || "Invalid admin username or password.");
       setLoading(false);
     }
   };
@@ -167,12 +159,6 @@ const AdminLogin = () => {
               />
               {fieldErrors.password && <p id="admin-password-error" className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>}
             </div>
-
-            <p className="text-sm text-center text-gray-500 mt-8">
-              Dummy Admins: <br />
-              - Username: <strong>admin</strong>, Password: <strong>AdminPass123</strong> <br />
-              - Username: <strong>superadmin</strong>, Password: <strong>supersecret</strong>
-            </p>
 
             <button
               type="submit"
