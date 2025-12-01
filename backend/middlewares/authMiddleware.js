@@ -19,12 +19,13 @@ function authMiddleware(req, res, next) {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET)
 
-    if (!payload.userId) {
+    const userId = payload.userId || payload.id
+    if (!userId) {
       return res.status(401).json({ error: 'Unauthorized: invalid token payload' })
     }
 
     req.user = {
-      id: payload.userId,
+      id: userId,
       role: payload.role || null
     }
 

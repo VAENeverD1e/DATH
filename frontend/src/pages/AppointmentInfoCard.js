@@ -1,15 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
-import { apiPatch } from "../api/client";
+import { apiPatch, apiGet } from "../api/client";
 
 export const AppointmentInfoCard = ({ appointment, onRefresh }) => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState("");
-
-  if (!appointment) {
-    return null;
-  }
+  const [medicalReport, setMedicalReport] = useState(null);
+  const [loadingReport, setLoadingReport] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   const {
     doctor_name,
@@ -90,6 +89,39 @@ export const AppointmentInfoCard = ({ appointment, onRefresh }) => {
     }
   };
 
+  // Load medical report when appointment is completed and user toggles display
+  const loadMedicalReport = async () => {
+    if (!appointment?.appointment_id) return;
+    setLoadingReport(true);
+    setError("");
+    try {
+      const data = await apiGet(`/api/reports/${appointment.appointment_id}`, { auth: true });
+      setMedicalReport(data || null);
+    } catch (err) {
+      setError(err.message || "Failed to load medical report");
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
+  useEffect(() => {
+    // Reset report when appointment changes
+    setMedicalReport(null);
+    setShowReport(false);
+  }, [appointment?.appointment_id]);
+
+  // Safe early return AFTER hooks (to satisfy hooks rules)
+  if (!appointment) {
+    return null;
+  }
+
+  const toggleReport = () => {
+    if (!showReport && !medicalReport) {
+      loadMedicalReport();
+    }
+    setShowReport(!showReport);
+  };
+
   return (
     <Card className="w-full bg-white hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -142,8 +174,8 @@ export const AppointmentInfoCard = ({ appointment, onRefresh }) => {
           </div>
         </div>
 
-        {/* Cancel Button (only if not already cancelled or completed) */}
-        <div className="flex justify-end gap-2">
+        {/* Actions */}
+        <div className="flex justify-end gap-2 flex-wrap">
           {status?.toLowerCase() !== "cancelled" && status?.toLowerCase() !== "completed" && (
             <Button
               onClick={handleCancel}
@@ -153,7 +185,38 @@ export const AppointmentInfoCard = ({ appointment, onRefresh }) => {
               {isCancelling ? "Cancelling..." : "Cancel Appointment"}
             </Button>
           )}
+          {status?.toLowerCase() === "completed" && (
+            <Button
+              onClick={toggleReport}
+              disabled={loadingReport}
+              className="bg-blue-600 hover:bg-blue-700 text-white h-auto px-4 py-2"
+            >
+              {loadingReport ? "Loading..." : showReport ? "Hide Medical Report" : "View Medical Report"}
+            </Button>
+          )}
         </div>
+
+        {/* Medical Report Section */}
+        {showReport && (
+          <div className="mt-6 border-t pt-4">
+            <h3 className="font-semibold text-lg text-black mb-3">Medical Report</h3>
+            {!medicalReport && !loadingReport && (
+              <p className="text-sm text-gray-500">No medical report found for this appointment.</p>
+            )}
+            {medicalReport && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Diagnosis</p>
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{medicalReport.diagnosis || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">Treatment Plan</p>
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{medicalReport.treatment_plan || 'N/A'}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -16,6 +16,9 @@ export const UserDashboard = () => {
   const [error, setError] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [showReports, setShowReports] = useState(false);
+  const [medicalReports, setMedicalReports] = useState([]);
+  const [selectedReport, setSelectedReport] = useState(null);
 
   const [profile, setProfile] = useState({
     username: "",
@@ -144,6 +147,31 @@ export const UserDashboard = () => {
     });
     setEditMode(false);
     setError("");
+  };
+
+  const loadMedicalReports = async () => {
+    try {
+      const data = await apiGet("/api/reports/my/patient", { auth: true });
+      setMedicalReports(data || []);
+    } catch (err) {
+      console.error("Failed to load medical reports:", err);
+      setError("Failed to load medical reports: " + err.message);
+    }
+  };
+
+  const toggleReportsView = () => {
+    if (!showReports) {
+      loadMedicalReports();
+    }
+    setShowReports(!showReports);
+  };
+
+  const viewReportDetails = (report) => {
+    setSelectedReport(report);
+  };
+
+  const closeReportDetails = () => {
+    setSelectedReport(null);
   };
 
   if (isLoading) {
@@ -363,9 +391,137 @@ export const UserDashboard = () => {
                   <span className="font-normal text-black text-base">{profile.email || "Not set"}</span>
                 </div>
               </div>
+
+              {/* Medical Reports Section */}
+              <div className="mt-12 pt-8 border-t">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-medium text-black text-lg">My Medical Reports</h2>
+                  <Button
+                    onClick={toggleReportsView}
+                    className="bg-[#4182f9] hover:bg-[#3671e8] text-white"
+                  >
+                    {showReports ? "Hide Reports" : "View All Reports"}
+                  </Button>
+                </div>
+
+                {showReports && (
+                  <div className="mt-4">
+                    {medicalReports.length === 0 ? (
+                      <p className="text-gray-500 text-sm">No medical reports found.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {medicalReports.map((report) => (
+                          <div
+                            key={report.report_id}
+                            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-4 mb-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {report.appointment_date} at {report.appointment_time}
+                                  </span>
+                                  <span className="text-sm text-gray-500">
+                                    Dr. {report.doctor_name}
+                                  </span>
+                                  {report.specialization && (
+                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                      {report.specialization}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-600 mb-1">
+                                  <span className="font-medium">Reason:</span> {report.reason_for_visit}
+                                </p>
+                                <p className="text-sm text-gray-700 line-clamp-2">
+                                  <span className="font-medium">Diagnosis:</span> {report.diagnosis}
+                                </p>
+                              </div>
+                              <Button
+                                onClick={() => viewReportDetails(report)}
+                                variant="outline"
+                                size="sm"
+                                className="ml-4"
+                              >
+                                View Details
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Medical Report Detail Modal */}
+        {selectedReport && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={closeReportDetails}
+          >
+            <div
+              className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Medical Report Details</h3>
+                <button
+                  onClick={closeReportDetails}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-500">Appointment Date & Time</p>
+                  <p className="text-base font-medium text-gray-900">
+                    {selectedReport.appointment_date} at {selectedReport.appointment_time}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-500">Doctor</p>
+                  <p className="text-base font-medium text-gray-900">
+                    Dr. {selectedReport.doctor_name}
+                    {selectedReport.specialization && (
+                      <span className="ml-2 text-sm text-gray-600">({selectedReport.specialization})</span>
+                    )}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-500">Reason for Visit</p>
+                  <p className="text-base text-gray-900">{selectedReport.reason_for_visit}</p>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Diagnosis</p>
+                  <p className="text-base text-gray-900 whitespace-pre-wrap">{selectedReport.diagnosis}</p>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Treatment Plan</p>
+                  <p className="text-base text-gray-900 whitespace-pre-wrap">{selectedReport.treatment_plan}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <Button
+                  onClick={closeReportDetails}
+                  className="bg-[#4182f9] hover:bg-[#3671e8] text-white"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

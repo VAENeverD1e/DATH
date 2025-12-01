@@ -24,10 +24,22 @@ const DoctorDashboard = () => {
   // ==== Appointments ====
   const [appointments, setAppointments] = useState([]);
 
-  // ==== Medical Report Modal ====
+  // ==== Medical Reports ====
+  const [medicalReports, setMedicalReports] = useState([]);
+  const [showReports, setShowReports] = useState(false);
+
+  // ==== Medical Report Modal (Create) ====
   const [reportModal, setReportModal] = useState({
     open: false,
     appointment_id: null,
+    diagnosis: "",
+    treatment_plan: "",
+  });
+
+  // ==== Edit Report Modal ====
+  const [editReportModal, setEditReportModal] = useState({
+    open: false,
+    report_id: null,
     diagnosis: "",
     treatment_plan: "",
   });
@@ -123,6 +135,54 @@ const DoctorDashboard = () => {
     } catch (err) {
       setError("Failed to save report: " + err.message);
     }
+  };
+
+  const loadMedicalReports = async () => {
+    try {
+      const data = await apiGet("/api/reports/my/doctor", { auth: true });
+      setMedicalReports(data || []);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load medical reports: " + err.message);
+    }
+  };
+
+  const openEditReport = (report) => {
+    setEditReportModal({
+      open: true,
+      report_id: report.report_id,
+      diagnosis: report.diagnosis,
+      treatment_plan: report.treatment_plan,
+    });
+  };
+
+  const saveEditedReport = async () => {
+    if (!editReportModal.diagnosis.trim() || !editReportModal.treatment_plan.trim()) {
+      setError("Both diagnosis and treatment plan are required");
+      return;
+    }
+    try {
+      await apiPatch(
+        `/api/reports/${editReportModal.report_id}`,
+        {
+          diagnosis: editReportModal.diagnosis,
+          treatment_plan: editReportModal.treatment_plan,
+        },
+        { auth: true }
+      );
+      setEditReportModal({ open: false, report_id: null, diagnosis: "", treatment_plan: "" });
+      loadMedicalReports(); // Reload to see updated report
+      setError(null);
+    } catch (err) {
+      setError("Failed to update report: " + err.message);
+    }
+  };
+
+  const toggleReportsView = () => {
+    if (!showReports) {
+      loadMedicalReports();
+    }
+    setShowReports(!showReports);
   };
 
   return (
@@ -398,6 +458,89 @@ const DoctorDashboard = () => {
           </table>
         </div>
 
+        {/* Medical Reports Section */}
+        <div
+          style={{
+            backgroundColor: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            marginBottom: "2rem",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <h2 style={{ fontSize: "1.25rem", fontWeight: "600", color: "#1e293b" }}>
+              Medical Reports
+            </h2>
+            <button
+              onClick={toggleReportsView}
+              style={{
+                backgroundColor: "#3b82f6",
+                color: "white",
+                padding: "0.5rem 1rem",
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              {showReports ? "Hide Reports" : "View All Reports"}
+            </button>
+          </div>
+
+          {showReports && (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ backgroundColor: "#f1f5f9" }}>
+                  <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Date</th>
+                  <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Time</th>
+                  <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Patient</th>
+                  <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Diagnosis</th>
+                  <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Treatment</th>
+                  <th style={{ padding: "0.75rem", textAlign: "left", fontWeight: "600" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {medicalReports.map((r) => (
+                  <tr key={r.report_id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                    <td style={{ padding: "0.75rem" }}>{r.appointment_date}</td>
+                    <td style={{ padding: "0.75rem" }}>{r.appointment_time}</td>
+                    <td style={{ padding: "0.75rem" }}>{r.patient_name}</td>
+                    <td style={{ padding: "0.75rem", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {r.diagnosis}
+                    </td>
+                    <td style={{ padding: "0.75rem", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {r.treatment_plan}
+                    </td>
+                    <td style={{ padding: "0.75rem" }}>
+                      <button
+                        onClick={() => openEditReport(r)}
+                        style={{
+                          backgroundColor: "#3b82f6",
+                          color: "white",
+                          padding: "0.25rem 0.75rem",
+                          borderRadius: "6px",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {medicalReports.length === 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ padding: "0.75rem", color: "#64748b", fontSize: "0.875rem" }}>
+                      No medical reports found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+
         {/* Medical Report Modal */}
         {reportModal.open && (
           <div
@@ -494,6 +637,108 @@ const DoctorDashboard = () => {
                   }}
                 >
                   Save & Complete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Report Modal */}
+        {editReportModal.open && (
+          <div
+            style={{
+              position: "fixed",
+              inset: "0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 50,
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: "white",
+                borderRadius: "12px",
+                padding: "24px",
+                width: "90%",
+                maxWidth: "600px",
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+              }}
+            >
+              <h3 style={{ fontSize: "1.25rem", fontWeight: "600", marginBottom: "1rem", color: "#1e293b" }}>
+                Edit Medical Report
+              </h3>
+              <p style={{ fontSize: "0.875rem", color: "#64748b", marginBottom: "1.5rem" }}>
+                Update the diagnosis and treatment plan.
+              </p>
+
+              <div style={{ marginBottom: "1rem" }}>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#475569", marginBottom: "0.5rem" }}>
+                  Diagnosis *
+                </label>
+                <textarea
+                  rows={4}
+                  value={editReportModal.diagnosis}
+                  onChange={(e) => setEditReportModal((v) => ({ ...v, diagnosis: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "6px",
+                    padding: "0.75rem",
+                    fontSize: "0.875rem",
+                  }}
+                  placeholder="Enter diagnosis..."
+                />
+              </div>
+
+              <div style={{ marginBottom: "1.5rem" }}>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "500", color: "#475569", marginBottom: "0.5rem" }}>
+                  Treatment Plan *
+                </label>
+                <textarea
+                  rows={4}
+                  value={editReportModal.treatment_plan}
+                  onChange={(e) => setEditReportModal((v) => ({ ...v, treatment_plan: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "6px",
+                    padding: "0.75rem",
+                    fontSize: "0.875rem",
+                  }}
+                  placeholder="Enter treatment plan..."
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
+                <button
+                  onClick={() =>
+                    setEditReportModal({ open: false, report_id: null, diagnosis: "", treatment_plan: "" })
+                  }
+                  style={{
+                    backgroundColor: "#94a3b8",
+                    color: "white",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "6px",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveEditedReport}
+                  style={{
+                    backgroundColor: "#3b82f6",
+                    color: "white",
+                    padding: "0.5rem 1rem",
+                    borderRadius: "6px",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Update Report
                 </button>
               </div>
             </div>

@@ -6,6 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "jest",
     "test-connection": "node server.js"
   },
   "dependencies": {
@@ -15,5 +17,9 @@
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
   }
 }

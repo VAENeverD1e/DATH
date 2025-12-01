@@ -156,7 +156,7 @@ router.get('/doctor', authMiddleware, requireRole('doctor'), async (req, res) =>
   // #TODO: Return list of appointments with: appointment_id, patient name, phone_number, date, start_time, end_time, duration, reason_for_visit, status
   try {
     const user_id = req.user.id;
-    const dateFilter = req.query.date || new Date().toISOString().split('T')[0]; // today if not provided
+    const dateFilter = req.query.date; // Optional date filter, no default
 
     const { data: doctor } = await supabase
       .from('Doctor')
@@ -185,7 +185,7 @@ router.get('/doctor', authMiddleware, requireRole('doctor'), async (req, res) =>
 
     if (error) throw error;
 
-    // Filter by date client-side since Supabase doesn't support filtering on joined fields directly
+    // Filter by date client-side if date parameter is provided
     const filteredAppointments = dateFilter 
       ? appointments.filter(a => a.Slot?.date === dateFilter)
       : appointments;
