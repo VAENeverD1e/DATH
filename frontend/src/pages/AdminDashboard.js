@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import NavBar from "../components/NavBar";
-import { apiGet, apiPost, apiDelete } from "../api/client";
+import { apiGet, apiPost, apiDelete, apiPatch } from "../api/client";
 
 const backgroundImage = process.env.PUBLIC_URL + "/assets/artistic-blurry-colorful-wallpaper-background.jpg";
 // Removed chart and appointments dummy data; focusing on doctor management only.
@@ -26,6 +26,12 @@ const AdminDashboard = () => {
     years_of_experience: "",
     department_id: ""
   });
+
+  // Department management state
+  const [showDeptModal, setShowDeptModal] = useState(false);
+  const [showEditDeptModal, setShowEditDeptModal] = useState(false);
+  const [newDepartment, setNewDepartment] = useState({ name: "" });
+  const [editingDepartment, setEditingDepartment] = useState(null);
 
   // Fetch doctors & departments & stats
   useEffect(() => {
@@ -121,6 +127,58 @@ const AdminDashboard = () => {
     }
   };
 
+  // Department management handlers
+  const handleAddDepartment = async () => {
+    try {
+      setError("");
+      if (!newDepartment.name || !newDepartment.name.trim()) {
+        setError("Department name is required");
+        return;
+      }
+      const created = await apiPost('/api/departments', { name: newDepartment.name.trim() }, { auth: true });
+      setDepartments(prev => [...prev, created]);
+      setShowDeptModal(false);
+      setNewDepartment({ name: "" });
+    } catch (err) {
+      setError(err.message || 'Failed to create department');
+    }
+  };
+
+  const handleEditDepartment = async () => {
+    try {
+      setError("");
+      if (!editingDepartment.name || !editingDepartment.name.trim()) {
+        setError("Department name is required");
+        return;
+      }
+      const updated = await apiPatch(
+        `/api/departments/${editingDepartment.department_id}`,
+        { name: editingDepartment.name.trim() },
+        { auth: true }
+      );
+      setDepartments(prev => prev.map(d => d.department_id === updated.department_id ? updated : d));
+      setShowEditDeptModal(false);
+      setEditingDepartment(null);
+    } catch (err) {
+      setError(err.message || 'Failed to update department');
+    }
+  };
+
+  const handleRemoveDepartment = async (department_id) => {
+    try {
+      setError("");
+      await apiDelete(`/api/departments/${department_id}`, { auth: true });
+      setDepartments(prev => prev.filter(d => d.department_id !== department_id));
+    } catch (err) {
+      setError(err.message || 'Failed to remove department');
+    }
+  };
+
+  const openEditDepartment = (dept) => {
+    setEditingDepartment({ ...dept });
+    setShowEditDeptModal(true);
+  };
+
   return (
     <div style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
       <NavBar />
@@ -162,8 +220,17 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* Loading Indicator */}
+        {loading && (
+          <div className="flex justify-center items-center py-12">
+            <div className="text-lg text-gray-600">Loading dashboard...</div>
+          </div>
+        )}
+
         {/* Removed appointments and charts sections */}
 
+        {!loading && (
+          <>
         {/* Doctor Appointments (selected) */}
         <div className="bg-white shadow rounded-lg p-6 mt-8">
           <div className="flex justify-between items-center mb-4">
@@ -232,6 +299,58 @@ const AdminDashboard = () => {
               {loadingAppointments && (
                 <tr>
                   <td colSpan={7} className="px-3 py-4 text-center text-gray-500">Loading...</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Department Management */}
+        <div className="bg-white shadow rounded-lg p-6 mt-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Departments</h2>
+            <button
+              onClick={() => setShowDeptModal(true)}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+            >
+              + Add Department
+            </button>
+          </div>
+
+          <table className="min-w-full table-auto">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="px-4 py-2 text-left">ID</th>
+                <th className="px-4 py-2 text-left">Name</th>
+                <th className="px-4 py-2 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {departments.map((dept) => (
+                <tr key={dept.department_id} className="border-b">
+                  <td className="px-4 py-2">{dept.department_id}</td>
+                  <td className="px-4 py-2">{dept.name}</td>
+                  <td className="px-4 py-2">
+                    <button
+                      onClick={() => openEditDepartment(dept)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mr-2"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleRemoveDepartment(dept.department_id)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {departments.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-4 text-center text-gray-500">
+                    No departments yet. Add one to get started.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -377,6 +496,78 @@ const AdminDashboard = () => {
                   className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
                 >
                   Add
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+          </>
+        )}
+
+        {/* Add Department Modal */}
+        {showDeptModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
+              <h2 className="text-lg font-semibold mb-4">Add New Department</h2>
+              <input
+                type="text"
+                placeholder="Department Name *"
+                value={newDepartment.name}
+                onChange={(e) => setNewDepartment({ name: e.target.value })}
+                className="w-full border p-2 mb-4 rounded"
+                required
+              />
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowDeptModal(false);
+                    setNewDepartment({ name: "" });
+                  }}
+                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddDepartment}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Department Modal */}
+        {showEditDeptModal && editingDepartment && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
+              <h2 className="text-lg font-semibold mb-4">Edit Department</h2>
+              <input
+                type="text"
+                placeholder="Department Name *"
+                value={editingDepartment.name}
+                onChange={(e) => setEditingDepartment({ ...editingDepartment, name: e.target.value })}
+                className="w-full border p-2 mb-4 rounded"
+                required
+              />
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowEditDeptModal(false);
+                    setEditingDepartment(null);
+                  }}
+                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditDepartment}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                >
+                  Save
                 </button>
               </div>
             </div>

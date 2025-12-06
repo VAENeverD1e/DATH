@@ -44,8 +44,6 @@ function requireRole(roles) {
     expandedRoles.add(r)
     if (r === 'admin') expandedRoles.add('administrator')
     if (r === 'administrator') expandedRoles.add('admin')
-    if (r === 'doctor') expandedRoles.add('physician')
-    if (r === 'physician') expandedRoles.add('doctor')
   })
   
   return (req, res, next) => {

@@ -27,7 +27,7 @@ app.use('/api/reports', reportRoutes)
 app.use('/api/slots', slotsRoutes)
 app.use('/api/appointments', appointmentsRoutes)
 app.use('/api/patient', patientRoutes)
-app.use('/api/admin', adminDoctorsRoutes)  // Fixed: was /api/admin/doctors causing /api/admin/doctors/doctors
+app.use('/api/admin', adminDoctorsRoutes)  
 app.use('/api/departments', departmentsRoutes)
 
 const port = process.env.PORT || 4000
